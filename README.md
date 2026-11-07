@@ -1,5 +1,7 @@
 # Minigraf 0507 – ovládání pomocí Arduino Nano Every
 
+🇨🇿 **Česky** · 🇬🇧 [English](README.en.md)
+
 Převodník, který oživí československý plotter **Aritma Minigraf A 0507** a umožní na něm kreslit
 z počítače **Atari XE/XL** (přes SIO) i z **PC** (přes USB).
 
@@ -33,8 +35,9 @@ Atari XE ──SIO──[3× optočlen]── Arduino ──7 signálů── Mi
 | `firmware/minigraf_sio/minigraf_sio.ino` | firmware pro Arduino Nano Every (ATmega4809) a Leonardo/Micro (ATmega32U4) |
 | `pc/plot.py` | posílání HPGL souborů z PC |
 | `pc/text_plot.py` | nápisy, text v řádcích a zkušební stránka |
-| `docs/Minigraf_0507_navod_v0.1.pdf` | kompletní návod (zapojení, příkazy, ukázky, řešení problémů) |
-| `docs/img/` | schémata zapojení a fotky výsledků |
+| `docs/Minigraf_0507_navod_v0.1.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
+| `docs/Minigraf_0507_manual_v0.1_EN.pdf` | kompletní návod anglicky |
+| `docs/img/` | schémata zapojení (CZ i EN) a fotky výsledků |
 
 ## Hardware
 
@@ -100,17 +103,6 @@ Jednotka = 1 krok = 0,125 mm. Pracovní plocha 1504 × 2104 kroků (188 × 263 m
 ![Zkušební stránka](docs/img/ukazka_test.jpg)
 
 Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_navod_v0.1.pdf).
-
----
-
-## English summary
-
-An Arduino-based interface for the Czechoslovak **Aritma Minigraf A 0507** pen plotter.
-The Arduino (Nano Every or Leonardo/Micro) emulates an **Atari SIO printer (P1:)**, so the plotter can be driven
-from Atari BASIC with plain `LPRINT` statements, and it also accepts the same simplified **HPGL** commands
-over USB from a PC. Python tools are included for plotting HPGL files and for rendering text with a built-in
-stroke font. The Atari side is galvanically isolated with three CNY75C optocouplers.
-See the (Czech) PDF manual in `docs/` for wiring, commands and troubleshooting.
 
 ## Zdroje
 
