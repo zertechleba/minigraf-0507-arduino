@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.pyc
+# vygenerované výkresy a náhledy
+*.hpgl
+*.plt
+pc/*.png
+# Arduino build
+build/
+*.hex
+*.elf
