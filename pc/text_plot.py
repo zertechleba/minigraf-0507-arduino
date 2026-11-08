@@ -23,9 +23,10 @@ Volby:
     --pen 30,60   prodleva pera v ms po položení / zvednutí (s --send)
     --accel 5000,300  zrychlení: rozjezd v µs, zkrácení v µs za krok (s --send)
     --diag 0      šikmé čáry plnou rychlostí, 1 = zpomalené (s --send)
+    --nohome      nenajíždět na levý doraz (s --send)
     --version     verze programu
 
-Pracovní plocha Minigrafu: 1504 x 2104 kroků (188 x 263 mm).
+Pracovní plocha od startovní pozice (po HM a IN): 1521 x 2104 kroků (190 x 263 mm).
 Nápis běží podél dlouhé strany (osa Y) = A4 na šířku.
 Umí velká i malá písmena, 0–9, interpunkci a českou diakritiku.
 
@@ -41,9 +42,9 @@ import argparse
 import math
 import unicodedata
 
-VERSION = "0.2"          # verze programu (odpovídá firmwaru 0.2)
+VERSION = "0.3"          # verze programu (odpovídá firmwaru 0.3)
 
-X_MAX, Y_MAX = 1503, 2103          # kroky
+X_MAX, Y_MAX = 1520, 2103          # kroky od počátku: X = mez 1580 - start 60 (firmware 0.3)
 STEPS_PER_MM = 8
 MARGIN = 15 * STEPS_PER_MM          # okraj textu (mění --margin)
 
@@ -313,6 +314,7 @@ def main():
     ap.add_argument("--pen", default="", help="prodleva pera v ms: dolů,nahoru (např. 30,60)")
     ap.add_argument("--accel", default="", help="zrychlení: rozjezd_us,ramp_us (např. 5000,300)")
     ap.add_argument("--diag", type=int, choices=(0, 1), default=None, help="šikmé čáry: 0 = plná rychlost, 1 = zpomalené")
+    ap.add_argument("--nohome", action="store_true", help="nenajíždět na začátku na levý doraz")
     ap.add_argument("--version", action="version", version="text_plot.py " + VERSION)
     ap.add_argument("--margin", type=float, default=15)
     a = ap.parse_args()
@@ -356,7 +358,7 @@ def main():
         import plot
         with open(a.out) as f:
             lines = plot.to_lines(f.read(), 1.0)
-        lines = plot.setup_lines(a.speed, a.pen, a.accel, a.diag) + lines
+        lines = plot.setup_lines(a.speed, a.pen, a.accel, a.diag, not a.nohome) + lines
         print("Posílám na %s ..." % a.port)
         plot.send_lines(a.port, lines)
 

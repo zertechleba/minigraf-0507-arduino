@@ -1,5 +1,5 @@
 /*
- * Atari XE (SIO) -> Aritma Minigraf A 0507      firmware verze 0.2
+ * Atari XE (SIO) -> Aritma Minigraf A 0507      firmware verze 0.3
  * -----------------------------------------
  * Arduino se na SIO sběrnici tváří jako tiskárna P1: (ID $40).
  * Z Atari se kreslí obyčejným LPRINT příkazy ve zjednodušeném HPGL:
@@ -12,10 +12,12 @@
  *   CI r[,n];        kružnice o poloměru r kolem aktuální polohy (n úseků)
  *   VS v;            rychlost v mm/s (např. VS30;), VS; = výchozí
  *   PT d[,u];        prodleva pera v ms: po položení d, po zvednutí u (PT; = výchozí)
+ *   LM x[,y];        meze plochy v krocích absolutně od levého dorazu, uloží se do EEPROM (LM; = vypsat)
+ *   HM[x];           najetí na levý doraz (X=0) a popojetí na X (výchozí 60), Y = 0
  *   AC s[,r];        zrychlení: pauza při rozjezdu s µs, zkrácení r µs/krok (AC; = výchozí)
  *   DG0; / DG1;      šikmé čáry plnou rychlostí / zpomalené ×1,4 (DG; = výchozí)
  *
- * Jednotka = 1 krok Minigrafu = 0,125 mm. Plocha 0..1503 x 0..2103.
+ * Jednotka = 1 krok Minigrafu = 0,125 mm. Meze plochy nastaví LM (výchozí 0..1580 x 0..2103, ověřeno).
  *
  * Desky (vybírá se automaticky podle procesoru):
  *   Arduino Nano Every (ATmega4809)  – doporučeno
@@ -37,8 +39,9 @@
 
 #include <Arduino.h>
 #include <math.h>
+#include <EEPROM.h>
 
-#define FW_VERSION "0.2"
+#define FW_VERSION "0.3"
 
 // ================= Nastavení =================
 const uint8_t  PIN_CMD        = 2;      // SIO Command přes optočlen (LOW = aktivní)
@@ -49,12 +52,16 @@ const uint32_t SIO_BAUD       = 19200;
 const bool     PEN_DOWN_LEVEL = HIGH;   // ověřit na plotteru, případně LOW
 const int8_t   X_DIR          = +1;     // -1 když osa jede obráceně
 const int8_t   Y_DIR          = +1;
-const int      X_MAX          = 1503;
-const int      Y_MAX          = 2103;
+const int      X_MAX_DEF      = 1580;   // výchozí meze (absolutně od levého dorazu), mění LM
+const int      Y_MAX_DEF      = 2103;   // a ukládají se do EEPROM
 const unsigned STEP_US        = 2083;   // výchozí rychlost 60 mm/s (125000 / 60)
 const unsigned START_US       = 9000;   // výchozí pauza při rozjezdu z klidu (~14 mm/s), mění AC
 const unsigned RAMP_US        = 150;    // výchozí zkrácení pauzy každým krokem rozjezdu, mění AC
-const bool     DIAG_SLOW      = true;   // výchozí zpomalení šikmých čar ×1,4, mění DG
+const bool     DIAG_SLOW      = true;
+const int      HOME_X         = 60;     // HM: kam popojet od levého dorazu (startovní pozice osy X)
+const int8_t   HOME_DIR       = -1;     // HM: směr k dorazu (-1 = k menším X); +1 když jede na druhou stranu
+const int      HOME_EXTRA     = 200;    // HM: o kolik kroků víc než šířka plochy (jistota dorazu)
+const unsigned HOME_US        = 2500;   // HM: rychlost jízdy k dorazu (~50 mm/s)   // výchozí zpomalení šikmých čar ×1,4, mění DG
 const unsigned MIN_STEP_US    = 1500;   // nejrychlejší povolené (VS nepustí rychleji)
 const unsigned PEN_DOWN_MS    = 0;      // čekání po položení pera (vyzkoušeno: 0)
 const unsigned PEN_UP_MS      = 70;     // čekání po zvednutí pera (vyzkoušeno: 70)
@@ -66,7 +73,21 @@ static unsigned startUs = START_US, rampUs = RAMP_US;     // zrychlení (AC)
 static bool     diagSlow = DIAG_SLOW;                     // šikmé čáry (DG)
 static unsigned penDownMs = PEN_DOWN_MS, penUpMs = PEN_UP_MS; // prodleva pera (PT)
 static uint8_t phX = 0, phY = 0;
-static int     posX = 0, posY = 0;
+static int     posX = 0, posY = 0;      // ABSOLUTNÍ poloha v krocích (od dorazu po HM, jinak od zapnutí)
+static int     orgX = 0, orgY = 0;      // počátek kreslení nastavený IN (souřadnice příkazů jsou relativně k němu)
+static int     xMax = X_MAX_DEF, yMax = Y_MAX_DEF;
+
+// ---- meze v EEPROM ----
+struct Limits { uint16_t magic; int16_t x, y; };
+const uint16_t LIM_MAGIC = 0x4D47;      // "MG"
+static void loadLimits() {
+  Limits l; EEPROM.get(0, l);
+  if (l.magic == LIM_MAGIC && l.x >= 100 && l.y >= 100) { xMax = l.x; yMax = l.y; }
+}
+static void saveLimits() {
+  Limits l = { LIM_MAGIC, (int16_t)xMax, (int16_t)yMax };
+  EEPROM.put(0, l);
+}
 static bool    penIsDown = false;
 static bool    absMode = true;
 
@@ -111,8 +132,8 @@ static void pen(bool down) {
 }
 
 static void lineTo(int x, int y) {          // Bresenham, obě osy současně
-  x = constrain(x, 0, X_MAX);
-  y = constrain(y, 0, Y_MAX);
+  x = constrain(x, 0, xMax);               // meze platí pro absolutní polohu
+  y = constrain(y, 0, yMax);
   int dx = abs(x - posX), dy = abs(y - posY);
   int8_t sx = (x > posX) ? 1 : -1;
   int8_t sy = (y > posY) ? 1 : -1;
@@ -134,9 +155,29 @@ static void lineTo(int x, int y) {          // Bresenham, obě osy současně
   }
 }
 
+// HM: jízda na levý doraz přes celou šířku (motor na dorazu proklouzne), pak na startovní X
+static void homeX(int targetX) {
+  pen(false);
+  long n = (long)xMax + HOME_EXTRA;
+  for (long i = 0; i < n; i++) {
+    phX = (phX + HOME_DIR * X_DIR) & 7;
+    writePhases();
+    long d = (long)startUs - i * (long)rampUs;
+    if (d < (long)HOME_US) d = HOME_US;
+    delayMicroseconds((unsigned)d);
+  }
+  delay(100);                              // dorazit a uklidnit
+  posX = 0;
+  posY = 0;                                // osa Y (papír) se nehýbe, aktuální řádek = 0
+  orgX = 0; orgY = 0;                      // souřadnice = absolutní (PU60,0 = startovní pozice)
+  absMode = true;
+  lineTo(targetX, 0);
+  Serial.print(F("HM: na dorazu X=0, ted X=")); Serial.print(posX); Serial.println(F(" Y=0"));
+}
+
 static void moveCoords(const long *v, uint8_t n) {
   for (uint8_t i = 0; i + 1 < n; i += 2) {
-    if (absMode) lineTo((int)v[i], (int)v[i + 1]);
+    if (absMode) lineTo(orgX + (int)v[i], orgY + (int)v[i + 1]);
     else         lineTo(posX + (int)v[i], posY + (int)v[i + 1]);
   }
 }
@@ -161,7 +202,7 @@ static void circle(long r, long segs) {
 // ================= Interpret příkazů =================
 static void execCmd(char c1, char c2, const long *v, uint8_t n) {
   Serial.print(c1); Serial.print(c2); Serial.print(" n="); Serial.println(n);
-  if      (c1 == 'I' && c2 == 'N') { pen(false); posX = posY = 0; phX = phY = 0; absMode = true; writePhases(); }
+  if      (c1 == 'I' && c2 == 'N') { pen(false); orgX = posX; orgY = posY; absMode = true; }   // počátek = aktuální poloha, motory se nehýbou
   else if (c1 == 'P' && c2 == 'U') { pen(false); moveCoords(v, n); }
   else if (c1 == 'P' && c2 == 'D') { pen(true);  moveCoords(v, n); }
   else if (c1 == 'P' && c2 == 'A') { absMode = true;  moveCoords(v, n); }
@@ -172,6 +213,18 @@ static void execCmd(char c1, char c2, const long *v, uint8_t n) {
       stepUs = (us < MIN_STEP_US) ? MIN_STEP_US : (us > 9000 ? 9000 : (unsigned)us);
     } else stepUs = STEP_US;
     Serial.print(F("rychlost: krok ")); Serial.print(stepUs); Serial.println(F(" us"));
+  }
+  else if (c1 == 'L' && c2 == 'M') {       // LM x[,y]; meze plochy (absolutně od dorazu), uloží se; LM; = vypsat
+    if (n >= 1) {
+      xMax = constrain(v[0], 100, 30000);
+      if (n >= 2) yMax = constrain(v[1], 100, 30000);
+      saveLimits();
+    }
+    Serial.print(F("meze: X 0..")); Serial.print(xMax); Serial.print(F(" Y 0..")); Serial.print(yMax);
+    Serial.println(n >= 1 ? F(" (ulozeno)") : F(""));
+  }
+  else if (c1 == 'H' && c2 == 'M') {       // HM[x]; najetí na levý doraz a pak na X (výchozí 60)
+    homeX(n >= 1 ? (int)v[0] : HOME_X);
   }
   else if (c1 == 'A' && c2 == 'C') {       // AC rozjezd_us[,ramp_us], AC; = výchozí
     if (n >= 1) { startUs = constrain(v[0], MIN_STEP_US, 16000); if (n >= 2) rampUs = constrain(v[1], 1, 5000); }
@@ -294,8 +347,10 @@ static unsigned long sioCount = 0;
 
 static void printStatus() {
   Serial.print(F("[bezi] FW " FW_VERSION " | cas ")); Serial.print(millis() / 1000);
-  Serial.print(F(" s | pozice X=")); Serial.print(posX);
-  Serial.print(F(" Y=")); Serial.print(posY);
+  Serial.print(F(" s | pozice X=")); Serial.print(posX - orgX);
+  Serial.print(F(" Y=")); Serial.print(posY - orgY);
+  Serial.print(F(" (absolutne ")); Serial.print(posX); Serial.print(','); Serial.print(posY);
+  Serial.print(F(", meze ")); Serial.print(xMax); Serial.print(','); Serial.print(yMax); Serial.print(')');
   Serial.print(F(" | pero ")); Serial.print(penIsDown ? F("dole") : F("nahore"));
   Serial.print(F(" | Command=")); Serial.print(digitalRead(PIN_CMD) ? F("H (klid)") : F("L"));
   Serial.print(F(" | SIO zprav pro P1: ")); Serial.println(sioCount);
@@ -341,10 +396,11 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   for (uint8_t i = 0; i < 6; i++) pinMode(PH_PINS[i], OUTPUT);
   writePhases();
+  loadLimits();
   delay(300);
   Serial.println();
   Serial.println(F("=== Atari SIO -> Minigraf A 0507, emulace P1:  FW " FW_VERSION " ==="));
-  Serial.println(F("Prikazy z monitoru: IN; PU x,y; PD x,y; PR dx,dy; CI r; VS mm/s; PT ms,ms; AC us,us; DG0/1;  ? = stav"));
+  Serial.println(F("Prikazy z monitoru: IN; PU x,y; PD x,y; PR dx,dy; CI r; VS mm/s; PT ms,ms; AC us,us; DG0/1; HM; LM x,y;  ? = stav"));
   printStatus();
 }
 

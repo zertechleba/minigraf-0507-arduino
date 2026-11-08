@@ -16,8 +16,10 @@ Volby:
     --pen 40,70   prodleva pera v ms: po položení, po zvednutí
     --accel 5000,300  zrychlení: pauza při rozjezdu v µs, zkrácení v µs za krok
     --diag 0      šikmé čáry plnou rychlostí (1 = zpomalené ×1,4)
+    --nohome      nenajíždět na začátku na levý doraz (výkres začne tam, kde hlava stojí)
     --version     verze programu
-Po připojení program vypíše verzi firmwaru v Arduinu.
+Po připojení program vypíše verzi firmwaru v Arduinu. Před kreslením hlava
+automaticky najede na levý doraz a startovní pozici X=60 (příkaz HM).
 
 Před spuštěním dej pero do levého dolního rohu papíru (to bude 0,0).
 Program posílá po jednom příkazu a čeká, až Arduino odpoví "hotovo",
@@ -28,7 +30,7 @@ import re
 import sys
 import time
 
-VERSION = "0.2"          # verze programu (odpovídá firmwaru 0.2)
+VERSION = "0.3"          # verze programu (odpovídá firmwaru 0.3)
 
 DEFAULT_PORT = "COM4"     # port Arduina s plotterem
 
@@ -71,10 +73,13 @@ def to_lines(text, scale):
     return out
 
 
-def setup_lines(speed=0, pen="", accel="", diag=None):
-    """Nastavovací příkazy na začátek výkresu (prázdné = výchozí hodnoty firmwaru)."""
+def setup_lines(speed=0, pen="", accel="", diag=None, home=True):
+    """Nastavovací příkazy na začátek výkresu (prázdné = výchozí hodnoty firmwaru).
+    home=True: hlava nejdřív najede na levý doraz a startovní pozici (HM)."""
     out = ["VS%d;" % speed if speed > 0 else "VS;", "PT%s;" % pen, "AC%s;" % accel]
     out.append("DG;" if diag is None else "DG%d;" % diag)
+    if home:
+        out.append("HM;")
     return out
 
 
@@ -131,6 +136,7 @@ def main():
     ap.add_argument("--pen", default="")
     ap.add_argument("--accel", default="")
     ap.add_argument("--diag", type=int, choices=(0, 1), default=None)
+    ap.add_argument("--nohome", action="store_true")
     ap.add_argument("--version", action="version", version="plot.py " + VERSION)
     a = ap.parse_args()
     if len(a.args) == 1:
@@ -144,7 +150,7 @@ def main():
         lines = to_lines(f.read(), a.scale)
     if not lines:
         sys.exit("V souboru nejsou žádné příkazy.")
-    lines = setup_lines(a.speed, a.pen, a.accel, a.diag) + lines
+    lines = setup_lines(a.speed, a.pen, a.accel, a.diag, not a.nohome) + lines
 
     if a.dry:
         print("\n".join(lines))
