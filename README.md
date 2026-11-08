@@ -7,7 +7,7 @@ z počítače **Atari XE/XL** (přes SIO) i z **PC** (přes USB).
 
 ![Ukázka – nápis s rámečkem a hvězdou](docs/img/ukazka_napis.jpg)
 
-*Autor: Zdeněk Kotrba · © 2026 · verze 0.3.4 (firmware 0.3.4)*
+*Autor: Zdeněk Kotrba · © 2026 · verze 0.3.5 (firmware 0.3.5)*
 
 ---
 
@@ -35,8 +35,8 @@ Atari XE ──SIO──[3× optočlen]── Arduino ──7 signálů── Mi
 | `firmware/minigraf_sio/minigraf_sio.ino` | firmware pro Arduino Nano Every (ATmega4809) a Leonardo/Micro (ATmega32U4) |
 | `pc/plot.py` | posílání HPGL souborů z PC |
 | `pc/text_plot.py` | nápisy, text v řádcích a zkušební stránka |
-| `docs/Minigraf_0507_navod_v0.3.4.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
-| `docs/Minigraf_0507_manual_v0.3.4_EN.pdf` | kompletní návod anglicky |
+| `docs/Minigraf_0507_navod_v0.3.5.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
+| `docs/Minigraf_0507_manual_v0.3.5_EN.pdf` | kompletní návod anglicky |
 | `docs/img/` | schémata zapojení (CZ i EN) a fotky výsledků |
 
 ## Hardware
@@ -109,10 +109,11 @@ Jednotka = 1 krok = 0,125 mm. Kreslicí plocha od startovní pozice 1521 × 2104
 
 ![Zkušební stránka](docs/img/ukazka_test.jpg)
 
-Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_navod_v0.3.4.pdf).
+Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_navod_v0.3.5.pdf).
 
 ## Historie verzí
 
+- **0.3.5** – žádné kaňky při výpadku: firmware zvedne pero, když 1 s nepřijde příkaz; `plot.py` se zotaví už po 3 s.
 - **0.3.4** – oprava příčiny výpadků: stavový výpis každých 10 s mohl zahltit 64bajtový přijímací buffer Arduina a uříznout příkaz; výpis se teď neposílá během kreslení a `plot.py` posílá řádky kratší než 64 znaků.
 - **0.3.3** (jen programy pro PC) – `plot.py` před kreslením ověří, že firmware zná `HM` (verze 0.3 a novější), a zastaví se s jasnou hláškou, když hlava na nulu nenajede.
 - **0.3.2** – nové výchozí hodnoty ověřené tiskem: zrychlení `AC6000,250`, šikmé čáry plnou rychlostí `DG0`, prodleva pera `PT30,70`.

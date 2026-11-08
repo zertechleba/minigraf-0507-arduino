@@ -1,5 +1,5 @@
 /*
- * Atari XE (SIO) -> Aritma Minigraf A 0507      firmware verze 0.3.4
+ * Atari XE (SIO) -> Aritma Minigraf A 0507      firmware verze 0.3.5
  * -----------------------------------------
  * Arduino se na SIO sběrnici tváří jako tiskárna P1: (ID $40).
  * Z Atari se kreslí obyčejným LPRINT příkazy ve zjednodušeném HPGL:
@@ -15,6 +15,7 @@
  *   LM x[,y];        meze plochy v krocích absolutně od levého dorazu, uloží se do EEPROM (LM; = vypsat)
  *   HM[x];           najetí na levý doraz (X=0) a popojetí na X (výchozí 60), Y = 0
  *   AC s[,r];        zrychlení: pauza při rozjezdu s µs, zkrácení r µs/krok (AC; = výchozí)
+ *   (pero dole a 1 s žádný příkaz -> firmware ho sám zvedne, aby nevznikla kaňka)
  *   DG0; / DG1;      šikmé čáry plnou rychlostí / zpomalené ×1,4 (DG; = výchozí)
  *
  * Jednotka = 1 krok Minigrafu = 0,125 mm. Meze plochy nastaví LM (výchozí 0..1580 x 0..2103, ověřeno).
@@ -41,7 +42,7 @@
 #include <math.h>
 #include <EEPROM.h>
 
-#define FW_VERSION "0.3.4"
+#define FW_VERSION "0.3.5"
 
 // ================= Nastavení =================
 const uint8_t  PIN_CMD        = 2;      // SIO Command přes optočlen (LOW = aktivní)
@@ -65,6 +66,7 @@ const unsigned HOME_US        = 2500;   // HM: rychlost jízdy k dorazu (~50 mm/
 const unsigned MIN_STEP_US    = 1500;   // nejrychlejší povolené (VS nepustí rychleji)
 const unsigned PEN_DOWN_MS    = 30;     // čekání po položení pera (ověřeno: 30)
 const unsigned PEN_UP_MS      = 70;     // čekání po zvednutí pera (ověřeno: 70)
+const unsigned PEN_IDLE_MS    = 1000;   // pero dole a žádný příkaz tak dlouho -> zvednout (žádné kaňky při výpadku)
 const uint8_t  PRN_TIMEOUT_S  = 255;    // max. doba čekání Atari na 'C' (jednotka ~1 s, 255 = max.)
 
 // ================= Minigraf =================
@@ -72,6 +74,7 @@ static unsigned stepUs = STEP_US;                         // rychlost (VS)
 static unsigned startUs = START_US, rampUs = RAMP_US;     // zrychlení (AC)
 static bool     diagSlow = DIAG_SLOW;                     // šikmé čáry (DG)
 static unsigned penDownMs = PEN_DOWN_MS, penUpMs = PEN_UP_MS; // prodleva pera (PT)
+static unsigned long lastCmdDone = 0;   // kdy skončil poslední příkaz (USB i SIO) – pro automatické zvednutí pera
 static uint8_t phX = 0, phY = 0;
 static int     posX = 0, posY = 0;      // ABSOLUTNÍ poloha v krocích (od dorazu po HM, jinak od zapnutí)
 static int     orgX = 0, orgY = 0;      // počátek kreslení nastavený IN (souřadnice příkazů jsou relativně k němu)
@@ -335,6 +338,7 @@ static void handleWrite(uint8_t aux1) {
   sioSend('A');
 
   feedPrinterData(buf, len);               // kreslí se TEĎ -> Atari čeká = řízení toku
+  lastCmdDone = millis();
   delayMicroseconds(300);
   sioSend('C');
 }
@@ -372,6 +376,10 @@ static void idleTasks() {
     lastBeat = now;
     printStatus();
   }
+  if (penIsDown && now - lastCmdDone > PEN_IDLE_MS && usbLen == 0) {
+    pen(false);                            // dlouho žádný příkaz s perem dole -> zvednout (výpadek, pauza)
+    Serial.println(F("pero zvednuto (zadny prikaz)"));
+  }
   if (usbLen && now - lastUsbChar > 1000) { // neúplný příkaz (ztracený konec řádku) -> zahodit
     usbLen = 0;
     Serial.println(F("zahozen neuplny prikaz"));
@@ -387,6 +395,7 @@ static void idleTasks() {
         Serial.print(F("> ")); Serial.println(usbBuf);
         digitalWrite(LED_BUILTIN, HIGH);
         parseLine(usbBuf);
+        lastCmdDone = millis();
         Serial.println(F("hotovo"));
       }
       usbLen = 0;

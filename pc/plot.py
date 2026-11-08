@@ -30,13 +30,13 @@ import re
 import sys
 import time
 
-VERSION = "0.3.4"        # verze programu (potřebuje firmware 0.3 nebo novější, doporučeno 0.3.4)
+VERSION = "0.3.5"        # verze programu (potřebuje firmware 0.3 nebo novější, doporučeno 0.3.5)
 
 DEFAULT_PORT = "COM4"     # port Arduina s plotterem
 
 MAX_PAIRS = 4            # max. dvojic souřadnic na řádek (řádek < 64 znaků = buffer Arduina)
 REPLY_TIMEOUT = 300      # s, max. doba kreslení jednoho řádku
-PROBE_AFTER = 20         # s bez odpovědi -> zeptat se Arduina, jestli žije
+PROBE_AFTER = 3          # s bez odpovědi -> zeptat se Arduina (dlouhé kreslení odpoví až po dokončení)
 MAX_RETRY = 3            # kolikrát poslat stejný řádek znovu
 KNOWN = {"IN", "PU", "PD", "PA", "PR", "CI"}   # nastavení (VS, PT, AC, DG) přidávají volby, ne soubor
 
