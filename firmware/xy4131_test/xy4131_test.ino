@@ -1,10 +1,10 @@
 /*
- * XY 4131 – testovací program (Arduino Nano Every / Leonardo / Nano)   verze 0.9
+ * XY 4131 – testovací program (Arduino Nano Every / Leonardo / Nano)   verze 0.10
  * --------------------------------------------------------------------
  * Ovládá se ze Sériového monitoru (115200 Bd, "Nový řádek") nebo z PC
  * programy plot.py / text_plot.py (stejné příkazy jako firmware Minigrafu).
  *
- * Zapojení (konektor WK 46248, ověřeno schématem XY 4130 a stránkou schotek.cz):
+ * Zapojení (zásuvka INPUT, kabelová vidlice TESLA WK 180 35, ověřeno schématem XY 4130 a stránkou schotek.cz):
  *   Arduino D6  -> PERO   (vývod 1)  1 = pero dole (pero musí být zapnuté přepínačem na plotteru!)
  *   Arduino D3  -> KROK   (vývod 2)  v klidu 1, impulz do 0 = jeden krok (0,1 mm, ověřeno)
  *   Arduino D5  -> X/Y    (vývod 3)  1 = papír, 0 = vozík s perem (ověřeno)
@@ -35,7 +35,7 @@
  * X = vozík (napříč), Y = papír. Y_DIR = -1 (s +1 vycházel text zrcadlově).
  */
 
-#define FW_VERSION "0.9"
+#define FW_VERSION "0.10"
 
 const uint8_t PIN_STEP = 3, PIN_DIR = 4, PIN_AXIS = 5, PIN_PEN = 6, PIN_READY = 7;
 

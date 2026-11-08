@@ -7,7 +7,7 @@ plot from an **Atari XE/XL** computer (via SIO) and from a **PC** (via USB).
 
 ![Example – lettering with frame and star](docs/img/ukazka_napis.jpg)
 
-*Author: Zdeněk Kotrba · © 2026 · version 0.4.1 (firmware 0.4.1)*
+*Author: Zdeněk Kotrba · © 2026 · version 0.4.2 (firmware 0.4.2)*
 
 ---
 
@@ -38,8 +38,8 @@ Atari XE ──SIO──[3× optocoupler]── Arduino ──7 signals── Mi
 | `firmware/xy4131_test/xy4131_test.ino` | test program for bringing up the XY 4131 (single-signal control) |
 | `pc/plot.py` | sending HPGL files from a PC |
 | `pc/text_plot.py` | lettering, text in lines and test page |
-| `docs/Minigraf_0507_manual_v0.4.1_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
-| `docs/Minigraf_0507_navod_v0.4.1.pdf` | full manual in Czech |
+| `docs/Minigraf_0507_XY4131_manual_v0.4.2_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
+| `docs/Minigraf_0507_XY4131_navod_v0.4.2.pdf` | full manual in Czech |
 | `docs/img/` | schematics (EN and CZ) and photos of results |
 
 ## Hardware
@@ -66,7 +66,7 @@ Schematics: [Nano Every](docs/img/schema_nano_every_en.jpg) · [Leonardo / Micro
 
 ### XY 4131 plotter (since version 0.4.0)
 
-| Signal | Nano Every / Leonardo | WK 46248 pin | Meaning (verified) |
+| Signal | Nano Every / Leonardo | INPUT pin | Meaning (verified) |
 |---|---|---|---|
 | PEN | D6 | 1 | 1 = pen down (coil), 0 = up (spring) |
 | STEP | D3 | 2 | idle 1, pulse to 0 = one 0.1 mm step |
@@ -74,6 +74,10 @@ Schematics: [Nano Every](docs/img/schema_nano_every_en.jpg) · [Leonardo / Micro
 | +/− | D4 | 4 | carriage 1 = right, paper 1 = forward |
 | READY | D7 | 5 | not used |
 | GND | GND | 6 | ground |
+
+Connector: round 7-pin **INPUT** socket on the plotter, TESLA **WK 180 35** plug with coupling nut on the cable. Pin numbers are moulded in the blue insert; pin 7 (centre) is not connected.
+
+![XY 4131 connector](docs/img/konektor_xy4131.jpg)
 
 220 Ω in series with D3–D6 recommended. Select the plotter with `PL4131;` (back: `PL0507;`); the choice is stored in EEPROM.
 Step 0.1 mm, carriage travel about 180 mm (X limit = 1780), start after `HM` 10 mm from the left end contact.
@@ -137,11 +141,12 @@ Unit = 1 plotter step: Minigraf 0.125 mm, XY 4131 0.1 mm. Each plotter has its o
 *The ink blot in the last line near "JKLM" appeared because one command was lost on USB and version 0.3.4 waited
 20 s with the pen down before resending it. From version 0.3.5 the firmware lifts the pen after 1 s and `plot.py` queries after 3 s.*
 
-See the [PDF manual](docs/Minigraf_0507_manual_v0.4.1_EN.pdf) for details.
+See the [PDF manual](docs/Minigraf_0507_XY4131_manual_v0.4.2_EN.pdf) for details.
 Note: the firmware and the PC programs print their status messages in Czech.
 
 ## Version history
 
+- **0.4.2** – manual renamed to "Minigraf 0507 and XY 4131" with a section on the XY 4131 connector (INPUT socket, TESLA WK 180 35 cable plug, photos); corrected connector designation in firmware, schematic and test program (0.10). No functional firmware change.
 - **0.4.1** (firmware only) – fix: with the SIO interface disconnected (Command line stuck L) the firmware waited only for the Atari, ignored USB and the LED did not blink. It now reports it after 0.3 s and keeps serving USB; D2 also gets the internal pull-up.
 - **0.4.0** – **Aritma XY 4131** support in the same firmware (selection `PL0507;` / `PL4131;`, stored in EEPROM; limits stored per plotter); `plot.py` and `text_plot.py` detect the plotter from the Arduino and use the right scale and area (`--plotter` option); test program `xy4131_test.ino`; manuals with an XY 4131 chapter.
 - **0.3.8** – Y axis referenced to paper loading: start after `HM` is 60,144 and Y limit 2284, giving A4 margins of 10 / 10 / 15 / 15 mm (measured) and keeping the paper in the feed wheels; `text_plot.py` uses a 190 × 267.5 mm area (default `--margin` 8 / 5 mm).

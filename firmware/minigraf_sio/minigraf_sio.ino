@@ -1,5 +1,5 @@
 /*
- * Atari XE (SIO) -> Aritma Minigraf A 0507 / Aritma XY 4131      firmware verze 0.4.1
+ * Atari XE (SIO) -> Aritma Minigraf A 0507 / Aritma XY 4131      firmware verze 0.4.2
  * -----------------------------------------------------------
  * Arduino se na SIO sběrnici tváří jako tiskárna P1: (ID $40).
  * Z Atari se kreslí obyčejným LPRINT příkazy ve zjednodušeném HPGL:
@@ -43,7 +43,7 @@
  *   Y4       A7   (!)              A5
  *   P        D10                   D10
  *
- * Výstupy na XY 4131 (konektor WK 46248, 5 V TTL, obě desky stejně):
+ * Výstupy na XY 4131 (zásuvka INPUT, kabelová vidlice TESLA WK 180 35, 5 V TTL, obě desky stejně):
  *   D6 -> PERO (vývod 1, 1 = pero dole)    D3 -> KROK (vývod 2, v klidu 1, impulz do 0)
  *   D5 -> X/Y  (vývod 3, 0 = vozík, 1 = papír)   D4 -> +/- (vývod 4)
  *   D7 <- READY (vývod 5, nepoužívá se)    GND -> vývod 6
@@ -54,7 +54,7 @@
 #include <math.h>
 #include <EEPROM.h>
 
-#define FW_VERSION "0.4.1"
+#define FW_VERSION "0.4.2"
 
 // ================= Nastavení =================
 const uint8_t  PIN_CMD        = 2;      // SIO Command přes optočlen (LOW = aktivní)
