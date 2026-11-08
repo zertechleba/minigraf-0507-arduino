@@ -30,12 +30,14 @@ import re
 import sys
 import time
 
-VERSION = "0.3"          # verze programu (odpovídá firmwaru 0.3)
+VERSION = "0.3.1"        # verze programu (odpovídá firmwaru 0.3.1)
 
 DEFAULT_PORT = "COM4"     # port Arduina s plotterem
 
 MAX_PAIRS = 8            # max. dvojic souřadnic na jeden řádek
 REPLY_TIMEOUT = 300      # s, max. doba kreslení jednoho řádku
+PROBE_AFTER = 20         # s bez odpovědi -> zeptat se Arduina, jestli žije
+MAX_RETRY = 3            # kolikrát poslat stejný řádek znovu
 KNOWN = {"IN", "PU", "PD", "PA", "PR", "CI"}   # nastavení (VS, PT, AC, DG) přidávají volby, ne soubor
 
 
@@ -107,21 +109,45 @@ def send_lines(port, lines):
         sys.exit("Nejde otevřít port %s. Je Arduino připojené a Sériový monitor zavřený?" % port)
     time.sleep(2)                          # Arduino se může po otevření portu restartovat
     ser.reset_input_buffer()
+    ver = firmware_version(ser)
+    print("plot.py %s | firmware v Arduinu: %s" % (VERSION, ver or "neznámá (starší než 0.2?)"))
     t0 = time.time()
+    retries_total = 0
     for n, line in enumerate(lines, 1):
+        retry = 0
         ser.write((line + "\n").encode("ascii"))
         deadline = time.time() + REPLY_TIMEOUT
+        probe_at = time.time() + PROBE_AFTER
+        probed = False
         while True:
             reply = ser.readline().decode("ascii", errors="ignore").strip()
             if reply == "hotovo":
                 break
             if reply.startswith("==="):
                 sys.exit("\nARDUINO SE RESTARTOVALO u řádku %d/%d (%s).\n"
-                         "Nejspíš rušení nebo pokles napájení od motorů - viz rady." % (n, len(lines), line))
+                         "Poloha je ztracená. Nejspíš rušení nebo pokles napájení od motorů." % (n, len(lines), line))
+            if probed and reply.startswith("[bezi]"):
+                # Arduino žije, ale na řádek neodpovědělo -> ztratil se příkaz nebo odpověď
+                retry += 1
+                retries_total += 1
+                if retry > MAX_RETRY:
+                    sys.exit("\nŘádek %d/%d se nepodařilo poslat ani na %d. pokus: %s" % (n, len(lines), MAX_RETRY, line))
+                print("\n  ! bez odpovědi, posílám znovu (%d. pokus): %s" % (retry, line))
+                ser.reset_input_buffer()
+                ser.write((line + "\n").encode("ascii"))
+                probe_at = time.time() + PROBE_AFTER
+                probed = False
+                continue
+            if not probed and time.time() > probe_at:
+                ser.write(b"?\n")                # zeptat se; dlouhé kreslení odpoví až po dokončení
+                probed = True
             if time.time() > deadline:
-                sys.exit("\nArduino neodpovědělo na: " + line)
+                sys.exit("\nArduino neodpovídá ani na dotaz (řádek %d/%d: %s).\n"
+                         "Zkontroluj LED na Arduinu a zkus reset." % (n, len(lines), line))
         print("\r%d/%d  %3d %%  %s" % (n, len(lines), n * 100 // len(lines), line[:40].ljust(40)),
               end="", flush=True)
+    if retries_total:
+        print("\nZnovu posláno řádků: %d (výpadky komunikace)" % retries_total, end="")
     ser.close()
     print("\nHotovo za %.0f s." % (time.time() - t0))
 

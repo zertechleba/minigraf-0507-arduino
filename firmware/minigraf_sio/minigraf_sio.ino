@@ -1,5 +1,5 @@
 /*
- * Atari XE (SIO) -> Aritma Minigraf A 0507      firmware verze 0.3
+ * Atari XE (SIO) -> Aritma Minigraf A 0507      firmware verze 0.3.1
  * -----------------------------------------
  * Arduino se na SIO sběrnici tváří jako tiskárna P1: (ID $40).
  * Z Atari se kreslí obyčejným LPRINT příkazy ve zjednodušeném HPGL:
@@ -41,7 +41,7 @@
 #include <math.h>
 #include <EEPROM.h>
 
-#define FW_VERSION "0.3"
+#define FW_VERSION "0.3.1"
 
 // ================= Nastavení =================
 const uint8_t  PIN_CMD        = 2;      // SIO Command přes optočlen (LOW = aktivní)
@@ -342,7 +342,7 @@ static void handleWrite(uint8_t aux1) {
 // ================= Ladění přes USB (Sériový monitor 115200 Bd) =================
 static char    usbBuf[128];
 static uint8_t usbLen = 0;
-static unsigned long lastBeat = 0, lastBlink = 0;
+static unsigned long lastBeat = 0, lastBlink = 0, lastUsbChar = 0;
 static unsigned long sioCount = 0;
 
 static void printStatus() {
@@ -370,8 +370,13 @@ static void idleTasks() {
     lastBeat = now;
     printStatus();
   }
+  if (usbLen && now - lastUsbChar > 1000) { // neúplný příkaz (ztracený konec řádku) -> zahodit
+    usbLen = 0;
+    Serial.println(F("zahozen neuplny prikaz"));
+  }
   while (Serial.available()) {             // příkazy přímo z monitoru
     char c = Serial.read();
+    lastUsbChar = millis();
     if (c == '\r' || c == '\n') {
       if (usbLen == 0) continue;
       usbBuf[usbLen] = 0;

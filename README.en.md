@@ -7,7 +7,7 @@ plot from an **Atari XE/XL** computer (via SIO) and from a **PC** (via USB).
 
 ![Example – lettering with frame and star](docs/img/ukazka_napis.jpg)
 
-*Author: Zdeněk Kotrba · © 2026 · version 0.3 (firmware 0.3)*
+*Author: Zdeněk Kotrba · © 2026 · version 0.3.1 (firmware 0.3.1)*
 
 ---
 
@@ -35,8 +35,8 @@ Atari XE ──SIO──[3× optocoupler]── Arduino ──7 signals── Mi
 | `firmware/minigraf_sio/minigraf_sio.ino` | firmware for Arduino Nano Every (ATmega4809) and Leonardo/Micro (ATmega32U4) |
 | `pc/plot.py` | sending HPGL files from a PC |
 | `pc/text_plot.py` | lettering, text in lines and test page |
-| `docs/Minigraf_0507_manual_v0.3_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
-| `docs/Minigraf_0507_navod_v0.3.pdf` | full manual in Czech |
+| `docs/Minigraf_0507_manual_v0.3.1_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
+| `docs/Minigraf_0507_navod_v0.3.1.pdf` | full manual in Czech |
 | `docs/img/` | schematics (EN and CZ) and photos of results |
 
 ## Hardware
@@ -109,11 +109,12 @@ Unit = 1 step = 0.125 mm. Drawing area from the start position 1521 × 2104 step
 
 ![Test page](docs/img/ukazka_test.jpg)
 
-See the [PDF manual](docs/Minigraf_0507_manual_v0.3_EN.pdf) for details.
+See the [PDF manual](docs/Minigraf_0507_manual_v0.3.1_EN.pdf) for details.
 Note: the firmware and the PC programs print their status messages in Czech.
 
 ## Version history
 
+- **0.3.1** – fix: `plot.py` recovers from communication dropouts (after 20 s it queries the Arduino and resends the line), the firmware discards incomplete commands, `plot.py` prints the firmware version again.
 - **0.3** – homing to the left stop `HM` (automatic before every PC drawing, `--nohome`), absolute position and area limits `LM` stored in EEPROM (verified X limit = 1580), `IN` no longer moves the motors.
 - **0.2** – `AC` (acceleration) and `DG` (diagonal lines) commands, firmware version in `?` status and in the PC programs (`--version`), `--accel` and `--diag` options.
 - **0.1** – first version: P1: printer emulation for Atari, PC control, lettering and text.
