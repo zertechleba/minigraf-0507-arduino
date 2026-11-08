@@ -1,5 +1,5 @@
 /*
- * Atari XE (SIO) -> Aritma Minigraf A 0507      firmware verze 0.3.1
+ * Atari XE (SIO) -> Aritma Minigraf A 0507      firmware verze 0.3.2
  * -----------------------------------------
  * Arduino se na SIO sběrnici tváří jako tiskárna P1: (ID $40).
  * Z Atari se kreslí obyčejným LPRINT příkazy ve zjednodušeném HPGL:
@@ -41,7 +41,7 @@
 #include <math.h>
 #include <EEPROM.h>
 
-#define FW_VERSION "0.3.1"
+#define FW_VERSION "0.3.2"
 
 // ================= Nastavení =================
 const uint8_t  PIN_CMD        = 2;      // SIO Command přes optočlen (LOW = aktivní)
@@ -55,16 +55,16 @@ const int8_t   Y_DIR          = +1;
 const int      X_MAX_DEF      = 1580;   // výchozí meze (absolutně od levého dorazu), mění LM
 const int      Y_MAX_DEF      = 2103;   // a ukládají se do EEPROM
 const unsigned STEP_US        = 2083;   // výchozí rychlost 60 mm/s (125000 / 60)
-const unsigned START_US       = 9000;   // výchozí pauza při rozjezdu z klidu (~14 mm/s), mění AC
-const unsigned RAMP_US        = 150;    // výchozí zkrácení pauzy každým krokem rozjezdu, mění AC
-const bool     DIAG_SLOW      = true;
+const unsigned START_US       = 6000;   // výchozí pauza při rozjezdu z klidu (~21 mm/s), mění AC (ověřeno)
+const unsigned RAMP_US        = 250;    // výchozí zkrácení pauzy každým krokem rozjezdu, mění AC (ověřeno)
+const bool     DIAG_SLOW      = false;  // výchozí: šikmé čáry plnou rychlostí (DG0), mění DG (ověřeno)
 const int      HOME_X         = 60;     // HM: kam popojet od levého dorazu (startovní pozice osy X)
 const int8_t   HOME_DIR       = -1;     // HM: směr k dorazu (-1 = k menším X); +1 když jede na druhou stranu
 const int      HOME_EXTRA     = 200;    // HM: o kolik kroků víc než šířka plochy (jistota dorazu)
 const unsigned HOME_US        = 2500;   // HM: rychlost jízdy k dorazu (~50 mm/s)   // výchozí zpomalení šikmých čar ×1,4, mění DG
 const unsigned MIN_STEP_US    = 1500;   // nejrychlejší povolené (VS nepustí rychleji)
-const unsigned PEN_DOWN_MS    = 0;      // čekání po položení pera (vyzkoušeno: 0)
-const unsigned PEN_UP_MS      = 70;     // čekání po zvednutí pera (vyzkoušeno: 70)
+const unsigned PEN_DOWN_MS    = 30;     // čekání po položení pera (ověřeno: 30)
+const unsigned PEN_UP_MS      = 70;     // čekání po zvednutí pera (ověřeno: 70)
 const uint8_t  PRN_TIMEOUT_S  = 255;    // max. doba čekání Atari na 'C' (jednotka ~1 s, 255 = max.)
 
 // ================= Minigraf =================

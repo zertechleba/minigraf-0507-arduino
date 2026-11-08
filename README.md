@@ -7,7 +7,7 @@ z počítače **Atari XE/XL** (přes SIO) i z **PC** (přes USB).
 
 ![Ukázka – nápis s rámečkem a hvězdou](docs/img/ukazka_napis.jpg)
 
-*Autor: Zdeněk Kotrba · © 2026 · verze 0.3.1 (firmware 0.3.1)*
+*Autor: Zdeněk Kotrba · © 2026 · verze 0.3.2 (firmware 0.3.2)*
 
 ---
 
@@ -35,8 +35,8 @@ Atari XE ──SIO──[3× optočlen]── Arduino ──7 signálů── Mi
 | `firmware/minigraf_sio/minigraf_sio.ino` | firmware pro Arduino Nano Every (ATmega4809) a Leonardo/Micro (ATmega32U4) |
 | `pc/plot.py` | posílání HPGL souborů z PC |
 | `pc/text_plot.py` | nápisy, text v řádcích a zkušební stránka |
-| `docs/Minigraf_0507_navod_v0.3.1.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
-| `docs/Minigraf_0507_manual_v0.3.1_EN.pdf` | kompletní návod anglicky |
+| `docs/Minigraf_0507_navod_v0.3.2.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
+| `docs/Minigraf_0507_manual_v0.3.2_EN.pdf` | kompletní návod anglicky |
 | `docs/img/` | schémata zapojení (CZ i EN) a fotky výsledků |
 
 ## Hardware
@@ -83,7 +83,7 @@ py text_plot.py "AHOJ" --frame --bold 3 --send
 py text_plot.py --test --portrait --send
 py plot.py obrazek.hpgl
 ```
-Rychlejší kreslení malého písma: `py text_plot.py --test --portrait --send --accel 6000,250 --diag 0`
+Šetrnější kreslení (starší plotter): `py text_plot.py --test --portrait --send --accel 9000,150 --diag 1`
 
 Výchozí port je `COM4` (jiný: `py plot.py COM7 obrazek.hpgl` nebo `--port COM7`).
 Před kreslením hlava sama najede na levý doraz a startovní pozici X = 60 (příkaz `HM`); vypne se volbou `--nohome`.
@@ -100,19 +100,20 @@ Před kreslením hlava sama najede na levý doraz a startovní pozici X = 60 (p�
 | `PA;` / `PR;` | absolutní / relativní souřadnice |
 | `CI r[,n];` | kružnice o poloměru r kolem aktuální polohy |
 | `VS v;` | rychlost v mm/s (`VS;` = výchozí 60) |
-| `PT d,u;` | prodleva pera v ms po položení / zvednutí (`PT;` = 0 / 70) |
-| `AC s,r;` | zrychlení: pauza při rozjezdu s µs, zkrácení r µs za krok (`AC;` = 9000 / 150) |
-| `DG0;` / `DG1;` | šikmé čáry plnou rychlostí / zpomalené ×1,4 (`DG;` = 1) |
+| `PT d,u;` | prodleva pera v ms po položení / zvednutí (`PT;` = 30 / 70) |
+| `AC s,r;` | zrychlení: pauza při rozjezdu s µs, zkrácení r µs za krok (`AC;` = 6000 / 250) |
+| `DG0;` / `DG1;` | šikmé čáry plnou rychlostí / zpomalené ×1,4 (`DG;` = 0) |
 | `?` | jen z USB: verze firmwaru a stav |
 
 Jednotka = 1 krok = 0,125 mm. Kreslicí plocha od startovní pozice 1521 × 2104 kroků (190 × 263 mm).
 
 ![Zkušební stránka](docs/img/ukazka_test.jpg)
 
-Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_navod_v0.3.1.pdf).
+Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_navod_v0.3.2.pdf).
 
 ## Historie verzí
 
+- **0.3.2** – nové výchozí hodnoty ověřené tiskem: zrychlení `AC6000,250`, šikmé čáry plnou rychlostí `DG0`, prodleva pera `PT30,70`.
 - **0.3.1** – oprava: `plot.py` se sám zotaví z výpadku komunikace (po 20 s se zeptá Arduina a řádek pošle znovu), firmware zahodí neúplný příkaz, `plot.py` opět vypisuje verzi firmwaru.
 - **0.3** – najetí na levý doraz `HM` (automaticky před každým výkresem z PC, `--nohome`), absolutní poloha a meze plochy `LM` uložené v EEPROM (ověřená mez X = 1580), `IN` už nehýbe motory.
 - **0.2** – příkazy `AC` (zrychlení) a `DG` (šikmé čáry), verze firmwaru ve výpisu `?` a v programech pro PC (`--version`), volby `--accel` a `--diag`.
