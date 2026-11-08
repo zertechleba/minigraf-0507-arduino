@@ -1,5 +1,5 @@
 /*
- * Atari XE (SIO) -> Aritma Minigraf A 0507 / Aritma XY 4131      firmware verze 0.4.0
+ * Atari XE (SIO) -> Aritma Minigraf A 0507 / Aritma XY 4131      firmware verze 0.4.1
  * -----------------------------------------------------------
  * Arduino se na SIO sběrnici tváří jako tiskárna P1: (ID $40).
  * Z Atari se kreslí obyčejným LPRINT příkazy ve zjednodušeném HPGL:
@@ -54,7 +54,7 @@
 #include <math.h>
 #include <EEPROM.h>
 
-#define FW_VERSION "0.4.0"
+#define FW_VERSION "0.4.1"
 
 // ================= Nastavení =================
 const uint8_t  PIN_CMD        = 2;      // SIO Command přes optočlen (LOW = aktivní)
@@ -461,7 +461,7 @@ static void printStatus() {
   Serial.print(F(" (absolutne ")); Serial.print(posX); Serial.print(','); Serial.print(posY);
   Serial.print(F(", meze ")); Serial.print(xMax); Serial.print(','); Serial.print(yMax); Serial.print(')');
   Serial.print(F(" | pero ")); Serial.print(penIsDown ? F("dole") : F("nahore"));
-  Serial.print(F(" | Command=")); Serial.print(digitalRead(PIN_CMD) ? F("H (klid)") : F("L"));
+  Serial.print(F(" | Command=")); Serial.print(digitalRead(PIN_CMD) ? F("H (klid)") : F("L (trvale = Atari odpojeno?)"));
   Serial.print(F(" | SIO zprav pro P1: ")); Serial.println(sioCount);
   Serial.print(F("        rychlost krok ")); Serial.print(stepUs);
   Serial.print(F(" us | AC ")); Serial.print(startUs); Serial.print(','); Serial.print(rampUs);
@@ -511,7 +511,7 @@ static void idleTasks() {
 void setup() {
   Serial.begin(115200);                    // USB ladění (nečeká se na připojení)
   Serial1.begin(SIO_BAUD);
-  pinMode(PIN_CMD, INPUT);                 // externí pull-up 2,2k
+  pinMode(PIN_CMD, INPUT_PULLUP);          // externí pull-up 2,2k; vnitřní drží H, když není převodník SIO připojen
   pinMode(PIN_PEN, OUTPUT);
   digitalWrite(PIN_PEN, !PEN_DOWN_LEVEL);
   pinMode(LED_BUILTIN, OUTPUT);
@@ -532,8 +532,23 @@ void setup() {
   printStatus();
 }
 
+static unsigned long cmdLowSince = 0;
+static bool cmdStuck = false;
+
 void loop() {
-  if (digitalRead(PIN_CMD) != LOW) { idleTasks(); return; }
+  if (digitalRead(PIN_CMD) != LOW) {
+    if (cmdStuck) { cmdStuck = false; Serial.println(F("SIO Command opet H - Atari pripojeno")); }
+    cmdLowSince = 0;
+    idleTasks();
+    return;
+  }
+  // Command trvale L (odpojený převodník SIO, vadný optočlen) -> nečekat na Atari, obsluhovat USB
+  if (cmdLowSince == 0) cmdLowSince = millis() | 1;
+  if (cmdStuck || millis() - cmdLowSince > 300) {
+    if (!cmdStuck) { cmdStuck = true; Serial.println(F("POZOR: SIO Command trvale L - Atari se ignoruje, USB funguje")); }
+    idleTasks();
+    return;
+  }
 
   while (Serial1.available()) Serial1.read();
   uint8_t f[5];

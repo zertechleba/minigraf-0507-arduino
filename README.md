@@ -7,7 +7,7 @@ z počítače **Atari XE/XL** (přes SIO) i z **PC** (přes USB).
 
 ![Ukázka – nápis s rámečkem a hvězdou](docs/img/ukazka_napis.jpg)
 
-*Autor: Zdeněk Kotrba · © 2026 · verze 0.4.0 (firmware 0.4.0)*
+*Autor: Zdeněk Kotrba · © 2026 · verze 0.4.1 (firmware 0.4.1)*
 
 ---
 
@@ -38,8 +38,8 @@ Atari XE ──SIO──[3× optočlen]── Arduino ──7 signálů── Mi
 | `firmware/xy4131_test/xy4131_test.ino` | testovací program pro oživení XY 4131 (ovládání jednotlivých signálů) |
 | `pc/plot.py` | posílání HPGL souborů z PC |
 | `pc/text_plot.py` | nápisy, text v řádcích a zkušební stránka |
-| `docs/Minigraf_0507_navod_v0.4.0.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
-| `docs/Minigraf_0507_manual_v0.4.0_EN.pdf` | kompletní návod anglicky |
+| `docs/Minigraf_0507_navod_v0.4.1.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
+| `docs/Minigraf_0507_manual_v0.4.1_EN.pdf` | kompletní návod anglicky |
 | `docs/img/` | schémata zapojení (CZ i EN) a fotky výsledků |
 
 ## Hardware
@@ -137,10 +137,11 @@ Jednotka = 1 krok plotteru: Minigraf 0,125 mm, XY 4131 0,1 mm. Výchozí hodnoty
 *Kaňka v posledním řádku u „JKLM“ vznikla tím, že se na USB ztratil jeden příkaz a verze 0.3.4 čekala 20 s
 s perem dole, než ho poslala znovu. Od verze 0.3.5 firmware pero po 1 s sám zvedne a `plot.py` se zeptá už po 3 s.*
 
-Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_navod_v0.4.0.pdf).
+Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_navod_v0.4.1.pdf).
 
 ## Historie verzí
 
+- **0.4.1** (jen firmware) – oprava: když byl převodník SIO odpojený (signál Command trvale L), firmware čekal jen na Atari, nereagoval na USB a LED neblikala. Teď to po 0,3 s ohlásí a dál obsluhuje USB; D2 má navíc vnitřní pull-up.
 - **0.4.0** – podpora plotteru **Aritma XY 4131** ve stejném firmwaru (výběr `PL0507;` / `PL4131;`, uloží se do EEPROM; meze zvlášť pro každý plotter); `plot.py` a `text_plot.py` si plotter zjistí z Arduina a použijí správné měřítko a plochu (volba `--plotter`); testovací program `xy4131_test.ino`; návody s kapitolou o XY 4131.
 - **0.3.8** – osa Y vztažená k založení papíru: start po `HM` je 60,144 a mez Y 2284, takže na A4 vyjdou okraje 10 / 10 / 15 / 15 mm (změřeno) a papír nevypadne z koleček posuvu; `text_plot.py` počítá s plochou 190 × 267,5 mm (výchozí `--margin` 8 / 5 mm).
 - **0.3.5** – žádné kaňky při výpadku: firmware zvedne pero, když 1 s nepřijde příkaz; `plot.py` se zotaví už po 3 s.
