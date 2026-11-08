@@ -42,7 +42,7 @@ import argparse
 import math
 import unicodedata
 
-VERSION = "0.3.3"        # verze programu (potřebuje firmware 0.3 nebo novější)
+VERSION = "0.3.4"        # verze programu (potřebuje firmware 0.3 nebo novější, doporučeno 0.3.4)
 
 X_MAX, Y_MAX = 1520, 2103          # kroky od počátku: X = mez 1580 - start 60 (firmware 0.3)
 STEPS_PER_MM = 8

@@ -7,7 +7,7 @@ plot from an **Atari XE/XL** computer (via SIO) and from a **PC** (via USB).
 
 ![Example – lettering with frame and star](docs/img/ukazka_napis.jpg)
 
-*Author: Zdeněk Kotrba · © 2026 · version 0.3.2 (firmware 0.3.2)*
+*Author: Zdeněk Kotrba · © 2026 · version 0.3.4 (firmware 0.3.4)*
 
 ---
 
@@ -35,8 +35,8 @@ Atari XE ──SIO──[3× optocoupler]── Arduino ──7 signals── Mi
 | `firmware/minigraf_sio/minigraf_sio.ino` | firmware for Arduino Nano Every (ATmega4809) and Leonardo/Micro (ATmega32U4) |
 | `pc/plot.py` | sending HPGL files from a PC |
 | `pc/text_plot.py` | lettering, text in lines and test page |
-| `docs/Minigraf_0507_manual_v0.3.2_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
-| `docs/Minigraf_0507_navod_v0.3.2.pdf` | full manual in Czech |
+| `docs/Minigraf_0507_manual_v0.3.4_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
+| `docs/Minigraf_0507_navod_v0.3.4.pdf` | full manual in Czech |
 | `docs/img/` | schematics (EN and CZ) and photos of results |
 
 ## Hardware
@@ -109,11 +109,12 @@ Unit = 1 step = 0.125 mm. Drawing area from the start position 1521 × 2104 step
 
 ![Test page](docs/img/ukazka_test.jpg)
 
-See the [PDF manual](docs/Minigraf_0507_manual_v0.3.2_EN.pdf) for details.
+See the [PDF manual](docs/Minigraf_0507_manual_v0.3.4_EN.pdf) for details.
 Note: the firmware and the PC programs print their status messages in Czech.
 
 ## Version history
 
+- **0.3.4** – fixed the cause of dropouts: the 10-second status printout could overflow the Arduino's 64-byte receive buffer and truncate a command; it is no longer printed while drawing and `plot.py` sends lines shorter than 64 characters.
 - **0.3.3** (PC programs only) – `plot.py` checks that the firmware supports `HM` (version 0.3 or newer) and stops with a clear message if the head does not home.
 - **0.3.2** – new defaults verified by printing: acceleration `AC6000,250`, diagonal lines at full speed `DG0`, pen delay `PT30,70`.
 - **0.3.1** – fix: `plot.py` recovers from communication dropouts (after 20 s it queries the Arduino and resends the line), the firmware discards incomplete commands, `plot.py` prints the firmware version again.

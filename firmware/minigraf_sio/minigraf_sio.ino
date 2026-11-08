@@ -1,5 +1,5 @@
 /*
- * Atari XE (SIO) -> Aritma Minigraf A 0507      firmware verze 0.3.2
+ * Atari XE (SIO) -> Aritma Minigraf A 0507      firmware verze 0.3.4
  * -----------------------------------------
  * Arduino se na SIO sběrnici tváří jako tiskárna P1: (ID $40).
  * Z Atari se kreslí obyčejným LPRINT příkazy ve zjednodušeném HPGL:
@@ -41,7 +41,7 @@
 #include <math.h>
 #include <EEPROM.h>
 
-#define FW_VERSION "0.3.2"
+#define FW_VERSION "0.3.4"
 
 // ================= Nastavení =================
 const uint8_t  PIN_CMD        = 2;      // SIO Command přes optočlen (LOW = aktivní)
@@ -366,7 +366,9 @@ static void idleTasks() {
     lastBlink = now;
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
   }
-  if (now - lastBeat >= 10000) {           // každých 10 s stav
+  // stav každých 10 s – ale jen když 10 s nepřišel žádný příkaz z USB. Dlouhý výpis by jinak mohl
+  // zahltit 64bajtový přijímací buffer a uříznout právě přicházející příkaz.
+  if (now - lastBeat >= 10000 && usbLen == 0 && now - lastUsbChar >= 10000) {
     lastBeat = now;
     printStatus();
   }
