@@ -1,13 +1,13 @@
-# Minigraf 0507 – ovládání pomocí Arduino Nano Every
+# Minigraf 0507 a XY 4131 – ovládání pomocí Arduino Nano Every
 
 🇨🇿 **Česky** · 🇬🇧 [English](README.en.md)
 
-Převodník, který oživí československý plotter **Aritma Minigraf A 0507** a umožní na něm kreslit
+Převodník, který oživí československé plottery **Aritma Minigraf A 0507** a **Aritma XY 4131** a umožní na nich kreslit
 z počítače **Atari XE/XL** (přes SIO) i z **PC** (přes USB).
 
 ![Ukázka – nápis s rámečkem a hvězdou](docs/img/ukazka_napis.jpg)
 
-*Autor: Zdeněk Kotrba · © 2026 · verze 0.3.8 (firmware 0.3.8)*
+*Autor: Zdeněk Kotrba · © 2026 · verze 0.4.0 (firmware 0.4.0)*
 
 ---
 
@@ -19,9 +19,11 @@ z počítače **Atari XE/XL** (přes SIO) i z **PC** (přes USB).
 - **Potvrzování** – další příkaz přijde, až plotter dokreslí předchozí, nic se neztratí.
 - **Pozvolný rozjezd a dojezd** motorů, ověřeno do 80 mm/s (výchozí 60 mm/s).
 - Atari je od zbytku **galvanicky odděleno** třemi optočleny CNY75C.
+- Od verze 0.4.0 ovládá stejné Arduino i plotter **XY 4131** – oba plottery mohou být připojené současně, kreslí ten vybraný příkazem `PL`.
 
 ```
 Atari XE ──SIO──[3× optočlen]── Arduino ──7 signálů── Minigraf A 0507
+                                   │       └─5 signálů── XY 4131
                                    │
                                   USB
                                    │
@@ -32,11 +34,12 @@ Atari XE ──SIO──[3× optočlen]── Arduino ──7 signálů── Mi
 
 | Cesta | Obsah |
 |---|---|
-| `firmware/minigraf_sio/minigraf_sio.ino` | firmware pro Arduino Nano Every (ATmega4809) a Leonardo/Micro (ATmega32U4) |
+| `firmware/minigraf_sio/minigraf_sio.ino` | firmware pro Arduino Nano Every (ATmega4809) a Leonardo/Micro (ATmega32U4), Minigraf i XY 4131 |
+| `firmware/xy4131_test/xy4131_test.ino` | testovací program pro oživení XY 4131 (ovládání jednotlivých signálů) |
 | `pc/plot.py` | posílání HPGL souborů z PC |
 | `pc/text_plot.py` | nápisy, text v řádcích a zkušební stránka |
-| `docs/Minigraf_0507_navod_v0.3.8.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
-| `docs/Minigraf_0507_manual_v0.3.8_EN.pdf` | kompletní návod anglicky |
+| `docs/Minigraf_0507_navod_v0.4.0.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
+| `docs/Minigraf_0507_manual_v0.4.0_EN.pdf` | kompletní návod anglicky |
 | `docs/img/` | schémata zapojení (CZ i EN) a fotky výsledků |
 
 ## Hardware
@@ -59,7 +62,27 @@ Atari XE ──SIO──[3× optočlen]── Arduino ──7 signálů── Mi
 > ⚠️ Zem Atari a zem Arduina s plotterem se **nespojují** – proto jsou v obvodu optočleny.
 > Arduino se napájí z USB, plotter ze svého zdroje 24 V.
 
-Schémata: [Nano Every](docs/img/schema_nano_every.jpg) · [Leonardo / Micro](docs/img/schema_leonardo_micro.jpg)
+Schémata: [Nano Every](docs/img/schema_nano_every.jpg) · [Leonardo / Micro](docs/img/schema_leonardo_micro.jpg) · [XY 4131](docs/img/schema_xy4131.jpg)
+
+### Plotter XY 4131 (od verze 0.4.0)
+
+| Signál | Nano Every / Leonardo | Vývod WK 46248 | Význam (ověřeno) |
+|---|---|---|---|
+| PERO | D6 | 1 | 1 = pero dole (cívka), 0 = nahoru (pružina) |
+| KROK | D3 | 2 | v klidu 1, impulz do 0 = krok 0,1 mm |
+| X/Y | D5 | 3 | 0 = vozík (osa X), 1 = papír (osa Y) |
+| +/− | D4 | 4 | vozík 1 = doprava, papír 1 = dopředu |
+| READY | D7 | 5 | nepoužívá se |
+| GND | GND | 6 | zem |
+
+Doporučené 220 Ω v sérii s D3–D6. Plotter vybereš příkazem `PL4131;` (zpět `PL0507;`), volba se uloží do EEPROM.
+Krok 0,1 mm, dráha vozíku asi 180 mm (mez X = 1780), start po `HM` 10 mm od levého koncového kontaktu.
+Programy pro PC si plotter zjistí z Arduina samy:
+```
+py text_plot.py "Zdeněk XY4131" --frame --star --bold 3 --send
+```
+> ⚠️ Plotter má na panelu **přepínač pera** – vypnutý = pero nereaguje. Koncové kontakty vozíku musí volně odskakovat:
+> zaseknutý levý kontakt zablokuje i jízdu doprava.
 
 ## Rychlý start
 
@@ -103,9 +126,10 @@ Papír A4 zakládej **horní hranou k výřezům pod přítlačnými kolečky po
 | `PT d,u;` | prodleva pera v ms po položení / zvednutí (`PT;` = 30 / 70) |
 | `AC s,r;` | zrychlení: pauza při rozjezdu s µs, zkrácení r µs za krok (`AC;` = 6000 / 250) |
 | `DG0;` / `DG1;` | šikmé čáry plnou rychlostí / zpomalené ×1,4 (`DG;` = 0) |
+| `PL0507;` / `PL4131;` | výběr plotteru, uloží se do EEPROM (`PL;` = vypsat) |
 | `?` | jen z USB: verze firmwaru a stav |
 
-Jednotka = 1 krok = 0,125 mm. Kreslicí plocha od startovní pozice 1520 × 2140 kroků (190 × 267,5 mm) = A4 s okraji 10 mm po stranách a 15 mm nahoře a dole.
+Jednotka = 1 krok plotteru: Minigraf 0,125 mm, XY 4131 0,1 mm. Výchozí hodnoty `VS`, `PT`, `AC` a meze `LM` má každý plotter své. Minigraf: kreslicí plocha od startovní pozice 1520 × 2140 kroků (190 × 267,5 mm) = A4 s okraji 10 mm po stranách a 15 mm nahoře a dole.
 
 ![Zkušební stránka](docs/img/ukazka_test.jpg)
 
@@ -113,10 +137,11 @@ Jednotka = 1 krok = 0,125 mm. Kreslicí plocha od startovní pozice 1520 × 2140
 *Kaňka v posledním řádku u „JKLM“ vznikla tím, že se na USB ztratil jeden příkaz a verze 0.3.4 čekala 20 s
 s perem dole, než ho poslala znovu. Od verze 0.3.5 firmware pero po 1 s sám zvedne a `plot.py` se zeptá už po 3 s.*
 
-Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_navod_v0.3.8.pdf).
+Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_navod_v0.4.0.pdf).
 
 ## Historie verzí
 
+- **0.4.0** – podpora plotteru **Aritma XY 4131** ve stejném firmwaru (výběr `PL0507;` / `PL4131;`, uloží se do EEPROM; meze zvlášť pro každý plotter); `plot.py` a `text_plot.py` si plotter zjistí z Arduina a použijí správné měřítko a plochu (volba `--plotter`); testovací program `xy4131_test.ino`; návody s kapitolou o XY 4131.
 - **0.3.8** – osa Y vztažená k založení papíru: start po `HM` je 60,144 a mez Y 2284, takže na A4 vyjdou okraje 10 / 10 / 15 / 15 mm (změřeno) a papír nevypadne z koleček posuvu; `text_plot.py` počítá s plochou 190 × 267,5 mm (výchozí `--margin` 8 / 5 mm).
 - **0.3.5** – žádné kaňky při výpadku: firmware zvedne pero, když 1 s nepřijde příkaz; `plot.py` se zotaví už po 3 s.
 - **0.3.4** – oprava příčiny výpadků: stavový výpis každých 10 s mohl zahltit 64bajtový přijímací buffer Arduina a uříznout příkaz; výpis se teď neposílá během kreslení a `plot.py` posílá řádky kratší než 64 znaků.

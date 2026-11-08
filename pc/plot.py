@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Posílání HPGL souboru z PC na Minigraf A 0507 přes Arduino (USB).
+Posílání HPGL souboru z PC na Minigraf A 0507 nebo XY 4131 přes Arduino (USB).
 
 Použití:
     py -m pip install pyserial
@@ -8,9 +8,10 @@ Použití:
     py plot.py COM7 obrazek.hpgl            (jiný port)
 
 Volby:
-    --scale 0.2   přepočet souřadnic (výchozí 0.2 = HPGL z Inkscape,
-                  40 jednotek/mm -> kroky Minigrafu 8/mm)
-    --scale 1     soubor už je v krocích Minigrafu (0,125 mm)
+    --scale 0.2   přepočet souřadnic. Výchozí podle plotteru: HPGL z Inkscape
+                  (40 jednotek/mm) -> Minigraf 0.2 (8 kroků/mm), XY 4131 0.25 (10 kroků/mm)
+    --scale 1     soubor už je v krocích plotteru (Minigraf 0,125 mm, XY 4131 0,1 mm)
+    --plotter 4131  pro --dry bez připojení (jinak se plotter zjistí z Arduina, příkaz PL)
     --dry         nic neposílá, jen vypíše, co by poslal
     --speed 30    rychlost kreslení v mm/s (bez volby = výchozí z Arduina)
     --pen 40,70   prodleva pera v ms: po položení, po zvednutí
@@ -18,8 +19,8 @@ Volby:
     --diag 0      šikmé čáry plnou rychlostí (1 = zpomalené ×1,4)
     --nohome      nenajíždět na začátku na levý doraz (výkres začne tam, kde hlava stojí)
     --version     verze programu
-Po připojení program vypíše verzi firmwaru v Arduinu. Před kreslením hlava
-automaticky najede na levý doraz a startovní pozici X=60 (příkaz HM).
+Po připojení program vypíše verzi firmwaru a vybraný plotter. Před kreslením hlava
+automaticky najede na levý doraz a startovní pozici (příkaz HM).
 
 Před spuštěním dej pero do levého dolního rohu papíru (to bude 0,0).
 Program posílá po jednom příkazu a čeká, až Arduino odpoví "hotovo",
@@ -30,7 +31,7 @@ import re
 import sys
 import time
 
-VERSION = "0.3.8"        # verze programu (potřebuje firmware 0.3 nebo novější, doporučeno 0.3.8)
+VERSION = "0.4.0"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
 
 DEFAULT_PORT = "COM4"     # port Arduina s plotterem
 
@@ -85,23 +86,32 @@ def setup_lines(speed=0, pen="", accel="", diag=None, home=True):
     return out
 
 
-def firmware_version(ser):
-    """Zeptá se Arduina na stav ('?') a vrátí verzi firmwaru, nebo None."""
+SCALE = {"0507": 0.2, "4131": 0.25}     # HPGL z Inkscape (40 jednotek/mm) -> kroky plotteru
+
+
+def firmware_info(ser):
+    """Zeptá se Arduina na stav ('?'). Vrátí (verze, plotter): plotter '0507' nebo '4131'."""
     ser.reset_input_buffer()
     ser.write(b"?\n")
     deadline = time.time() + 2
-    ver = None
+    ver, pl = None, "0507"                 # firmware před 0.4.0 zná jen Minigraf
     while time.time() < deadline:
         line = ser.readline().decode("ascii", errors="ignore")
         m = re.search(r"FW ([0-9][0-9.]*)", line)
         if m:
             ver = m.group(1)
+        if "XY4131" in line:
+            pl = "4131"
     ser.reset_input_buffer()
-    return ver
+    return ver, pl
 
 
-def send_lines(port, lines):
-    """Pošle řádky na Arduino, po každém čeká na 'hotovo'."""
+def firmware_version(ser):
+    return firmware_info(ser)[0]
+
+
+def open_plotter(port):
+    """Otevře port, vypíše verzi firmwaru a plotter. Vrátí (ser, verze, plotter)."""
     import serial                          # pyserial
     try:
         ser = serial.Serial(port, 115200, timeout=1)
@@ -109,8 +119,18 @@ def send_lines(port, lines):
         sys.exit("Nejde otevřít port %s. Je Arduino připojené a Sériový monitor zavřený?" % port)
     time.sleep(2)                          # Arduino se může po otevření portu restartovat
     ser.reset_input_buffer()
-    ver = firmware_version(ser)
-    print("plot.py %s | firmware v Arduinu: %s" % (VERSION, ver or "neznámá (starší než 0.2?)"))
+    ver, pl = firmware_info(ser)
+    print("plot.py %s | firmware v Arduinu: %s | plotter: %s" % (
+        VERSION, ver or "neznámá (starší než 0.2?)", "XY 4131" if pl == "4131" else "Minigraf A 0507"))
+    return ser, ver, pl
+
+
+def send_lines(port, lines, ver=None):
+    """Pošle řádky na Arduino, po každém čeká na 'hotovo'. port = název portu nebo otevřený port."""
+    if isinstance(port, str):
+        ser, ver, _ = open_plotter(port)
+    else:
+        ser = port
     if "HM;" in lines:
         try:
             vt = tuple(int(x) for x in (ver or "0").split("."))
@@ -172,7 +192,8 @@ def main():
     ap = argparse.ArgumentParser(description="HPGL -> Minigraf A 0507 přes Arduino (plot.py %s)" % VERSION)
     ap.add_argument("args", nargs="+", metavar="[PORT] SOUBOR",
                     help="HPGL soubor, volitelně před ním port (výchozí %s)" % DEFAULT_PORT)
-    ap.add_argument("--scale", type=float, default=0.2)
+    ap.add_argument("--scale", type=float, default=None)
+    ap.add_argument("--plotter", choices=("auto", "0507", "4131"), default="auto")
     ap.add_argument("--dry", action="store_true")
     ap.add_argument("--speed", type=int, default=0)
     ap.add_argument("--pen", default="")
@@ -189,17 +210,25 @@ def main():
         ap.error("zadej: [PORT] SOUBOR")
 
     with open(fname, "r", errors="ignore") as f:
-        lines = to_lines(f.read(), a.scale)
+        text = f.read()
+    ser = ver = None
+    pl = "0507" if a.plotter == "auto" else a.plotter
+    if not a.dry:
+        ser, ver, found = open_plotter(port)
+        if a.plotter == "auto":
+            pl = found
+    scale = a.scale if a.scale is not None else SCALE[pl]
+    lines = to_lines(text, scale)
     if not lines:
         sys.exit("V souboru nejsou žádné příkazy.")
     lines = setup_lines(a.speed, a.pen, a.accel, a.diag, not a.nohome) + lines
 
     if a.dry:
         print("\n".join(lines))
-        print("--- %d řádků" % len(lines))
+        print("--- %d řádků (plotter %s, měřítko %g)" % (len(lines), pl, scale))
         return
-    print("Port %s, %d řádků" % (port, len(lines)))
-    send_lines(port, lines)
+    print("Port %s, %d řádků, měřítko %g" % (port, len(lines), scale))
+    send_lines(ser, lines, ver)
 
 
 if __name__ == "__main__":

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-Velký nápis přes celou šířku A4 (na šířku) pro Minigraf A 0507.
+Velký nápis přes celou šířku A4 (na šířku) pro Minigraf A 0507 a XY 4131.
 
-Vytvoří HPGL soubor v krocích plotteru (0,125 mm) a s --send ho rovnou nakreslí:
+Vytvoří HPGL soubor v krocích plotteru (Minigraf 0,125 mm, XY 4131 0,1 mm)
+a s --send ho rovnou nakreslí:
     py text_plot.py "AHOJ" --frame --bold 3 --send
 nebo jen soubor a kreslení zvlášť:
     py text_plot.py "AHOJ" --frame --bold 3
@@ -24,10 +25,13 @@ Volby:
     --accel 5000,300  zrychlení: rozjezd v µs, zkrácení v µs za krok (s --send)
     --diag 0      šikmé čáry plnou rychlostí, 1 = zpomalené (s --send)
     --nohome      nenajíždět na levý doraz (s --send)
+    --plotter 4131  plotter, pro který se kreslí (výchozí auto: s --send se zjistí
+                  z Arduina, bez --send Minigraf 0507)
     --version     verze programu
 
-Kreslicí plocha od startovní pozice (po HM a IN): 1520 x 2140 kroků (190 x 267,5 mm)
-= A4 s okraji 10 mm po stranách a 15 mm nahoře a dole (firmware 0.3.8).
+Kreslicí plocha od startovní pozice (po HM a IN):
+  Minigraf 0507: 1520 x 2140 kroků (190 x 267,5 mm) = A4 s okraji 10 mm po stranách a 15 mm nahoře a dole
+  XY 4131:       1600 x 2400 kroků (160 x 240 mm), start 10 mm od levého kontaktu
 Volba --margin přidává okraj UVNITŘ této plochy.
 Nápis běží podél dlouhé strany (osa Y) = A4 na šířku.
 Umí velká i malá písmena, 0–9, interpunkci a českou diakritiku.
@@ -44,9 +48,14 @@ import argparse
 import math
 import unicodedata
 
-VERSION = "0.3.8"        # verze programu (potřebuje firmware 0.3 nebo novější, doporučeno 0.3.8)
+VERSION = "0.4.0"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
 
-X_MAX, Y_MAX = 1520, 2140          # kroky od počátku: X = 1580 - 60, Y = 2284 - 144 (firmware 0.3.8)
+# kreslicí plocha v krocích od startovní pozice a kroků na mm podle plotteru
+PLOTTERS = {
+    "0507": (1520, 2140, 8),        # X = 1580 - 60, Y = 2284 - 144 (firmware 0.3.8 a novější)
+    "4131": (1600, 2400, 10),       # X = 1700 z 1780 (start 100), Y 240 mm papíru
+}
+X_MAX, Y_MAX = 1520, 2140
 STEPS_PER_MM = 8
 MARGIN = 8 * STEPS_PER_MM           # okraj uvnitř kreslicí plochy (mění --margin)
 
@@ -295,8 +304,13 @@ def to_hpgl(paths):
     return "\n".join(out) + "\n"
 
 
+def set_plotter(pl):
+    global X_MAX, Y_MAX, STEPS_PER_MM
+    X_MAX, Y_MAX, STEPS_PER_MM = PLOTTERS[pl]
+
+
 def main():
-    ap = argparse.ArgumentParser(description="Nápisy a text pro Minigraf A 0507 (text_plot.py %s)" % VERSION)
+    ap = argparse.ArgumentParser(description="Nápisy a text pro Minigraf A 0507 a XY 4131 (text_plot.py %s)" % VERSION)
     ap.add_argument("text", nargs="?", default="")
     ap.add_argument("--size", type=float, default=0,
                     help="výška velkých písmen v mm -> běžný text na řádky (| = nový řádek)")
@@ -319,7 +333,22 @@ def main():
     ap.add_argument("--nohome", action="store_true", help="nenajíždět na začátku na levý doraz")
     ap.add_argument("--version", action="version", version="text_plot.py " + VERSION)
     ap.add_argument("--margin", type=float, default=8)
+    ap.add_argument("--plotter", choices=("auto", "0507", "4131"), default="auto",
+                    help="plotter (auto = zjistit z Arduina při --send, jinak 0507)")
     a = ap.parse_args()
+
+    ser = ver = None
+    pl = "0507" if a.plotter == "auto" else a.plotter
+    if a.send:
+        import os, sys
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import plot
+        ser, ver, found = plot.open_plotter(a.port)
+        if a.plotter == "auto":
+            pl = found
+        elif found != pl:
+            print("POZOR: Arduino má vybraný jiný plotter (%s), kreslím pro %s." % (found, pl))
+    set_plotter(pl)
 
     if a.file:
         with open(a.file, encoding="utf-8") as f:
@@ -335,7 +364,7 @@ def main():
         plot_paths, page_paths, k = build(a.text, a.bold, a.frame, a.star, a.flip, a.margin)
     with open(a.out, "w") as f:
         f.write(to_hpgl(plot_paths))
-    print("Uloženo %s: %d tahů%s" % (a.out, len(plot_paths),
+    print("Plotter %s | uloženo %s: %d tahů%s" % ("XY 4131" if pl == "4131" else "Minigraf 0507", a.out, len(plot_paths),
           "" if a.test else ", výška písmen %.1f mm" % (6 * k / STEPS_PER_MM)))
     if not a.send:
         print("Kreslení: py plot.py %s --scale 1   (nebo příště přidej --send)" % a.out)
@@ -355,14 +384,11 @@ def main():
         print("Náhled:", png)
 
     if a.send:
-        import os, sys
-        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-        import plot
         with open(a.out) as f:
             lines = plot.to_lines(f.read(), 1.0)
         lines = plot.setup_lines(a.speed, a.pen, a.accel, a.diag, not a.nohome) + lines
         print("Posílám na %s ..." % a.port)
-        plot.send_lines(a.port, lines)
+        plot.send_lines(ser, lines, ver)
 
 
 if __name__ == "__main__":
