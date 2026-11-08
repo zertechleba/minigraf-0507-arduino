@@ -7,7 +7,7 @@ plot from an **Atari XE/XL** computer (via SIO) and from a **PC** (via USB).
 
 ![Example – lettering with frame and star](docs/img/ukazka_napis.jpg)
 
-*Author: Zdeněk Kotrba · © 2026 · version 0.4.4 (firmware 0.4.2)*
+*Author: Zdeněk Kotrba · © 2026 · version 0.4.5 (firmware 0.4.2)*
 
 ---
 
@@ -39,8 +39,8 @@ Atari XE ──SIO──[3× optocoupler]── Arduino ──7 signals── Mi
 | `pc/plot.py` | sending HPGL files from a PC |
 | `pc/text_plot.py` | lettering, text in lines and test page, block and script font |
 | `pc/hershey_script.py` | script font data (`--font psane`), must be in the same folder as `text_plot.py` |
-| `docs/Minigraf_0507_XY4131_manual_v0.4.4_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
-| `docs/Minigraf_0507_XY4131_navod_v0.4.4.pdf` | full manual in Czech |
+| `docs/Minigraf_0507_XY4131_manual_v0.4.5_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
+| `docs/Minigraf_0507_XY4131_navod_v0.4.5.pdf` | full manual in Czech |
 | `docs/img/` | schematics (EN and CZ) and photos of results |
 
 ## Hardware
@@ -143,15 +143,20 @@ Unit = 1 plotter step: Minigraf 0.125 mm, XY 4131 0.1 mm. Each plotter has its o
 *The ink blot in the last line near "JKLM" appeared because one command was lost on USB and version 0.3.4 waited
 20 s with the pen down before resending it. From version 0.3.5 the firmware lifts the pen after 1 s and `plot.py` queries after 3 s.*
 
-See the [PDF manual](docs/Minigraf_0507_XY4131_manual_v0.4.4_EN.pdf) for details.
+See the [PDF manual](docs/Minigraf_0507_XY4131_manual_v0.4.5_EN.pdf) for details.
 Note: the firmware and the PC programs print their status messages in Czech.
 
 ## Version history
 
+- **0.4.5** (manuals only) – photo of the script font plotted on the Minigraf A 0507.
 - **0.4.4** (PC programs only) – switching the plotter from the command line: `py plot.py --select 0507` / `--select 4131`; `--plotter 0507/4131` in `plot.py` and `text_plot.py` switches the Arduino directly. The manual shows plotter selection from Atari BASIC. Firmware stays 0.4.2.
 - **0.4.3** (`text_plot.py` only) – **handwriting-like script**: option `--font psane` (Hershey single-stroke script font with added Czech diacritics, data in `hershey_script.py`); text wraps by actual letter widths. Firmware stays 0.4.2.
 
 ![Script font](docs/img/psane_ukazka.png)
+
+![Script font on the Minigraf 0507](docs/img/foto_psane_0507.jpg)
+
+*Script font plotted on the Minigraf A 0507.*
 
 - **0.4.2** – manual renamed to "Minigraf 0507 and XY 4131" with a section on the XY 4131 connector (INPUT socket, TESLA WK 180 35 cable plug, photos); corrected connector designation in firmware, schematic and test program (0.10). No functional firmware change.
 - **0.4.1** (firmware only) – fix: with the SIO interface disconnected (Command line stuck L) the firmware waited only for the Atari, ignored USB and the LED did not blink. It now reports it after 0.3 s and keeps serving USB; D2 also gets the internal pull-up.
