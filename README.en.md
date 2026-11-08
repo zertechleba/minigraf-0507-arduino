@@ -7,7 +7,7 @@ plot from an **Atari XE/XL** computer (via SIO) and from a **PC** (via USB).
 
 ![Example – lettering with frame and star](docs/img/ukazka_napis.jpg)
 
-*Author: Zdeněk Kotrba · © 2026 · version 0.1*
+*Author: Zdeněk Kotrba · © 2026 · version 0.2 (firmware 0.2)*
 
 ---
 
@@ -35,8 +35,8 @@ Atari XE ──SIO──[3× optocoupler]── Arduino ──7 signals── Mi
 | `firmware/minigraf_sio/minigraf_sio.ino` | firmware for Arduino Nano Every (ATmega4809) and Leonardo/Micro (ATmega32U4) |
 | `pc/plot.py` | sending HPGL files from a PC |
 | `pc/text_plot.py` | lettering, text in lines and test page |
-| `docs/Minigraf_0507_manual_v0.1_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
-| `docs/Minigraf_0507_navod_v0.1.pdf` | full manual in Czech |
+| `docs/Minigraf_0507_manual_v0.2_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
+| `docs/Minigraf_0507_navod_v0.2.pdf` | full manual in Czech |
 | `docs/img/` | schematics (EN and CZ) and photos of results |
 
 ## Hardware
@@ -83,6 +83,8 @@ py text_plot.py "HELLO" --frame --bold 3 --send
 py text_plot.py --test --portrait --send
 py plot.py drawing.hpgl
 ```
+Faster drawing of small text: `py text_plot.py --test --portrait --send --accel 6000,250 --diag 0`
+
 The default port is `COM4` (another one: `py plot.py COM7 drawing.hpgl` or `--port COM7`).
 Before plotting, move the head to the bottom-left corner – that becomes point 0,0.
 
@@ -97,13 +99,21 @@ Before plotting, move the head to the bottom-left corner – that becomes point 
 | `CI r[,n];` | circle of radius r around the current position |
 | `VS v;` | speed in mm/s (`VS;` = default 60) |
 | `PT d,u;` | pen delay in ms after pen down / pen up (`PT;` = 0 / 70) |
+| `AC s,r;` | acceleration: start delay s µs, shortened by r µs per step (`AC;` = 9000 / 150) |
+| `DG0;` / `DG1;` | diagonal lines at full speed / slowed ×1.4 (`DG;` = 1) |
+| `?` | USB only: firmware version and status |
 
 Unit = 1 step = 0.125 mm. Plotting area 1504 × 2104 steps (188 × 263 mm).
 
 ![Test page](docs/img/ukazka_test.jpg)
 
-See the [PDF manual](docs/Minigraf_0507_manual_v0.1_EN.pdf) for details.
+See the [PDF manual](docs/Minigraf_0507_manual_v0.2_EN.pdf) for details.
 Note: the firmware and the PC programs print their status messages in Czech.
+
+## Version history
+
+- **0.2** – `AC` (acceleration) and `DG` (diagonal lines) commands, firmware version in `?` status and in the PC programs (`--version`), `--accel` and `--diag` options.
+- **0.1** – first version: P1: printer emulation for Atari, PC control, lettering and text.
 
 ## Sources
 

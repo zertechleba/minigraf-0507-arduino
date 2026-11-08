@@ -14,6 +14,10 @@ Volby:
     --dry         nic neposílá, jen vypíše, co by poslal
     --speed 30    rychlost kreslení v mm/s (bez volby = výchozí z Arduina)
     --pen 40,70   prodleva pera v ms: po položení, po zvednutí
+    --accel 5000,300  zrychlení: pauza při rozjezdu v µs, zkrácení v µs za krok
+    --diag 0      šikmé čáry plnou rychlostí (1 = zpomalené ×1,4)
+    --version     verze programu
+Po připojení program vypíše verzi firmwaru v Arduinu.
 
 Před spuštěním dej pero do levého dolního rohu papíru (to bude 0,0).
 Program posílá po jednom příkazu a čeká, až Arduino odpoví "hotovo",
@@ -24,11 +28,13 @@ import re
 import sys
 import time
 
+VERSION = "0.2"          # verze programu (odpovídá firmwaru 0.2)
+
 DEFAULT_PORT = "COM4"     # port Arduina s plotterem
 
 MAX_PAIRS = 8            # max. dvojic souřadnic na jeden řádek
 REPLY_TIMEOUT = 300      # s, max. doba kreslení jednoho řádku
-KNOWN = {"IN", "PU", "PD", "PA", "PR", "CI", "PT"}
+KNOWN = {"IN", "PU", "PD", "PA", "PR", "CI"}   # nastavení (VS, PT, AC, DG) přidávají volby, ne soubor
 
 
 def hpgl_commands(text):
@@ -51,9 +57,6 @@ def to_lines(text, scale):
         if cmd == "IN":
             out.append("IN;")
             continue
-        if cmd == "PT":
-            out.append("PT" + ",".join(str(int(v)) for v in nums) + ";")
-            continue
         if cmd == "CI":
             if nums:
                 out.append("CI%d;" % round(nums[0] * scale))
@@ -66,6 +69,28 @@ def to_lines(text, scale):
             chunk = vals[i:i + 2 * MAX_PAIRS]
             out.append(cmd + ",".join(str(v) for v in chunk) + ";")
     return out
+
+
+def setup_lines(speed=0, pen="", accel="", diag=None):
+    """Nastavovací příkazy na začátek výkresu (prázdné = výchozí hodnoty firmwaru)."""
+    out = ["VS%d;" % speed if speed > 0 else "VS;", "PT%s;" % pen, "AC%s;" % accel]
+    out.append("DG;" if diag is None else "DG%d;" % diag)
+    return out
+
+
+def firmware_version(ser):
+    """Zeptá se Arduina na stav ('?') a vrátí verzi firmwaru, nebo None."""
+    ser.reset_input_buffer()
+    ser.write(b"?\n")
+    deadline = time.time() + 2
+    ver = None
+    while time.time() < deadline:
+        line = ser.readline().decode("ascii", errors="ignore")
+        m = re.search(r"FW ([0-9][0-9.]*)", line)
+        if m:
+            ver = m.group(1)
+    ser.reset_input_buffer()
+    return ver
 
 
 def send_lines(port, lines):
@@ -97,13 +122,16 @@ def send_lines(port, lines):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="HPGL -> Minigraf A 0507 přes Arduino")
+    ap = argparse.ArgumentParser(description="HPGL -> Minigraf A 0507 přes Arduino (plot.py %s)" % VERSION)
     ap.add_argument("args", nargs="+", metavar="[PORT] SOUBOR",
                     help="HPGL soubor, volitelně před ním port (výchozí %s)" % DEFAULT_PORT)
     ap.add_argument("--scale", type=float, default=0.2)
     ap.add_argument("--dry", action="store_true")
     ap.add_argument("--speed", type=int, default=0)
     ap.add_argument("--pen", default="")
+    ap.add_argument("--accel", default="")
+    ap.add_argument("--diag", type=int, choices=(0, 1), default=None)
+    ap.add_argument("--version", action="version", version="plot.py " + VERSION)
     a = ap.parse_args()
     if len(a.args) == 1:
         port, fname = DEFAULT_PORT, a.args[0]
@@ -116,8 +144,7 @@ def main():
         lines = to_lines(f.read(), a.scale)
     if not lines:
         sys.exit("V souboru nejsou žádné příkazy.")
-    lines.insert(0, "VS%d;" % a.speed if a.speed > 0 else "VS;")
-    lines.insert(1, "PT%s;" % a.pen)
+    lines = setup_lines(a.speed, a.pen, a.accel, a.diag) + lines
 
     if a.dry:
         print("\n".join(lines))

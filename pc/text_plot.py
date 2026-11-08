@@ -21,6 +21,9 @@ Volby:
     --port COMx   jiný port než COM4
     --speed 30    rychlost kreslení v mm/s (s --send)
     --pen 30,60   prodleva pera v ms po položení / zvednutí (s --send)
+    --accel 5000,300  zrychlení: rozjezd v µs, zkrácení v µs za krok (s --send)
+    --diag 0      šikmé čáry plnou rychlostí, 1 = zpomalené (s --send)
+    --version     verze programu
 
 Pracovní plocha Minigrafu: 1504 x 2104 kroků (188 x 263 mm).
 Nápis běží podél dlouhé strany (osa Y) = A4 na šířku.
@@ -37,6 +40,8 @@ Zkušební stránka (stejný text ve velikostech 6 / 4 / 3 / 2 mm):
 import argparse
 import math
 import unicodedata
+
+VERSION = "0.2"          # verze programu (odpovídá firmwaru 0.2)
 
 X_MAX, Y_MAX = 1503, 2103          # kroky
 STEPS_PER_MM = 8
@@ -288,7 +293,7 @@ def to_hpgl(paths):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Velký nápis na A4 na šířku pro Minigraf A 0507")
+    ap = argparse.ArgumentParser(description="Nápisy a text pro Minigraf A 0507 (text_plot.py %s)" % VERSION)
     ap.add_argument("text", nargs="?", default="")
     ap.add_argument("--size", type=float, default=0,
                     help="výška velkých písmen v mm -> běžný text na řádky (| = nový řádek)")
@@ -306,6 +311,9 @@ def main():
     ap.add_argument("--port", default="COM4")
     ap.add_argument("--speed", type=int, default=0)
     ap.add_argument("--pen", default="", help="prodleva pera v ms: dolů,nahoru (např. 30,60)")
+    ap.add_argument("--accel", default="", help="zrychlení: rozjezd_us,ramp_us (např. 5000,300)")
+    ap.add_argument("--diag", type=int, choices=(0, 1), default=None, help="šikmé čáry: 0 = plná rychlost, 1 = zpomalené")
+    ap.add_argument("--version", action="version", version="text_plot.py " + VERSION)
     ap.add_argument("--margin", type=float, default=15)
     a = ap.parse_args()
 
@@ -348,8 +356,7 @@ def main():
         import plot
         with open(a.out) as f:
             lines = plot.to_lines(f.read(), 1.0)
-        lines.insert(0, "VS%d;" % a.speed if a.speed > 0 else "VS;")
-        lines.insert(1, "PT%s;" % a.pen)
+        lines = plot.setup_lines(a.speed, a.pen, a.accel, a.diag) + lines
         print("Posílám na %s ..." % a.port)
         plot.send_lines(a.port, lines)
 

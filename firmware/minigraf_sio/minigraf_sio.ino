@@ -1,5 +1,5 @@
 /*
- * Atari XE (SIO) -> Aritma Minigraf A 0507
+ * Atari XE (SIO) -> Aritma Minigraf A 0507      firmware verze 0.2
  * -----------------------------------------
  * Arduino se na SIO sběrnici tváří jako tiskárna P1: (ID $40).
  * Z Atari se kreslí obyčejným LPRINT příkazy ve zjednodušeném HPGL:
@@ -12,6 +12,8 @@
  *   CI r[,n];        kružnice o poloměru r kolem aktuální polohy (n úseků)
  *   VS v;            rychlost v mm/s (např. VS30;), VS; = výchozí
  *   PT d[,u];        prodleva pera v ms: po položení d, po zvednutí u (PT; = výchozí)
+ *   AC s[,r];        zrychlení: pauza při rozjezdu s µs, zkrácení r µs/krok (AC; = výchozí)
+ *   DG0; / DG1;      šikmé čáry plnou rychlostí / zpomalené ×1,4 (DG; = výchozí)
  *
  * Jednotka = 1 krok Minigrafu = 0,125 mm. Plocha 0..1503 x 0..2103.
  *
@@ -36,6 +38,8 @@
 #include <Arduino.h>
 #include <math.h>
 
+#define FW_VERSION "0.2"
+
 // ================= Nastavení =================
 const uint8_t  PIN_CMD        = 2;      // SIO Command přes optočlen (LOW = aktivní)
 const uint8_t  PIN_PEN        = 10;
@@ -48,16 +52,19 @@ const int8_t   Y_DIR          = +1;
 const int      X_MAX          = 1503;
 const int      Y_MAX          = 2103;
 const unsigned STEP_US        = 2083;   // výchozí rychlost 60 mm/s (125000 / 60)
-const unsigned START_US       = 9000;   // pauza při rozjezdu z klidu (~14 mm/s)
-const unsigned RAMP_US        = 150;    // o kolik se pauza zkracuje každým krokem rozjezdu
+const unsigned START_US       = 9000;   // výchozí pauza při rozjezdu z klidu (~14 mm/s), mění AC
+const unsigned RAMP_US        = 150;    // výchozí zkrácení pauzy každým krokem rozjezdu, mění AC
+const bool     DIAG_SLOW      = true;   // výchozí zpomalení šikmých čar ×1,4, mění DG
 const unsigned MIN_STEP_US    = 1500;   // nejrychlejší povolené (VS nepustí rychleji)
 const unsigned PEN_DOWN_MS    = 0;      // čekání po položení pera (vyzkoušeno: 0)
 const unsigned PEN_UP_MS      = 70;     // čekání po zvednutí pera (vyzkoušeno: 70)
 const uint8_t  PRN_TIMEOUT_S  = 255;    // max. doba čekání Atari na 'C' (jednotka ~1 s, 255 = max.)
 
 // ================= Minigraf =================
-static unsigned stepUs = STEP_US;
-static unsigned penDownMs = PEN_DOWN_MS, penUpMs = PEN_UP_MS;        // aktuální rychlost (mění příkaz VS)
+static unsigned stepUs = STEP_US;                         // rychlost (VS)
+static unsigned startUs = START_US, rampUs = RAMP_US;     // zrychlení (AC)
+static bool     diagSlow = DIAG_SLOW;                     // šikmé čáry (DG)
+static unsigned penDownMs = PEN_DOWN_MS, penUpMs = PEN_UP_MS; // prodleva pera (PT)
 static uint8_t phX = 0, phY = 0;
 static int     posX = 0, posY = 0;
 static bool    penIsDown = false;
@@ -119,9 +126,9 @@ static void lineTo(int x, int y) {          // Bresenham, obě osy současně
     stepAxes(mx, my);
     // lichoběžníková rampa: pomalý rozjezd, plná rychlost, pomalý dojezd
     int edge = min(done, total - 1 - done);
-    long d = (long)START_US - (long)edge * RAMP_US;
+    long d = (long)startUs - (long)edge * rampUs;
     if (d < (long)stepUs) d = stepUs;
-    if (mx && my) d = d * 7 / 5;           // šikmo jedou oba motory -> zpomalit (~sqrt 2)
+    if (diagSlow && mx && my) d = d * 7 / 5; // šikmo jedou oba motory -> zpomalit (~sqrt 2)
     delayMicroseconds((unsigned)d);
     done++;
   }
@@ -162,9 +169,19 @@ static void execCmd(char c1, char c2, const long *v, uint8_t n) {
   else if (c1 == 'V' && c2 == 'S') {       // VS rychlost v mm/s, VS bez čísla = výchozí
     if (n >= 1 && v[0] > 0) {
       long us = 125000L / v[0];            // 1 krok = 0,125 mm
-      stepUs = (us < MIN_STEP_US) ? MIN_STEP_US : (us > START_US ? START_US : (unsigned)us);
+      stepUs = (us < MIN_STEP_US) ? MIN_STEP_US : (us > 9000 ? 9000 : (unsigned)us);
     } else stepUs = STEP_US;
     Serial.print(F("rychlost: krok ")); Serial.print(stepUs); Serial.println(F(" us"));
+  }
+  else if (c1 == 'A' && c2 == 'C') {       // AC rozjezd_us[,ramp_us], AC; = výchozí
+    if (n >= 1) { startUs = constrain(v[0], MIN_STEP_US, 16000); if (n >= 2) rampUs = constrain(v[1], 1, 5000); }
+    else        { startUs = START_US; rampUs = RAMP_US; }
+    Serial.print(F("zrychleni: rozjezd ")); Serial.print(startUs);
+    Serial.print(F(" us, ramp ")); Serial.print(rampUs); Serial.println(F(" us/krok"));
+  }
+  else if (c1 == 'D' && c2 == 'G') {       // DG0 = šikmo bez zpomalení, DG1 = se zpomalením, DG; = výchozí
+    diagSlow = (n >= 1) ? (v[0] != 0) : DIAG_SLOW;
+    Serial.print(F("sikme cary: ")); Serial.println(diagSlow ? F("zpomalene") : F("plna rychlost"));
   }
   else if (c1 == 'P' && c2 == 'T') {       // PT dolů[,nahoru] v ms, PT; = výchozí
     if (n >= 1) { penDownMs = constrain(v[0], 0, 1000); penUpMs = (n >= 2) ? constrain(v[1], 0, 1000) : penUpMs; }
@@ -276,12 +293,16 @@ static unsigned long lastBeat = 0, lastBlink = 0;
 static unsigned long sioCount = 0;
 
 static void printStatus() {
-  Serial.print(F("[bezi] cas ")); Serial.print(millis() / 1000);
+  Serial.print(F("[bezi] FW " FW_VERSION " | cas ")); Serial.print(millis() / 1000);
   Serial.print(F(" s | pozice X=")); Serial.print(posX);
   Serial.print(F(" Y=")); Serial.print(posY);
   Serial.print(F(" | pero ")); Serial.print(penIsDown ? F("dole") : F("nahore"));
   Serial.print(F(" | Command=")); Serial.print(digitalRead(PIN_CMD) ? F("H (klid)") : F("L"));
   Serial.print(F(" | SIO zprav pro P1: ")); Serial.println(sioCount);
+  Serial.print(F("        rychlost krok ")); Serial.print(stepUs);
+  Serial.print(F(" us | AC ")); Serial.print(startUs); Serial.print(','); Serial.print(rampUs);
+  Serial.print(F(" | DG")); Serial.print(diagSlow ? 1 : 0);
+  Serial.print(F(" | PT ")); Serial.print(penDownMs); Serial.print(','); Serial.println(penUpMs);
 }
 
 static void idleTasks() {
@@ -322,8 +343,8 @@ void setup() {
   writePhases();
   delay(300);
   Serial.println();
-  Serial.println(F("=== Atari SIO -> Minigraf A 0507, emulace P1: ==="));
-  Serial.println(F("Prikazy z monitoru: IN; PU x,y; PD x,y; PR dx,dy; CI r; VS mm/s; PT ms,ms;  ? = stav"));
+  Serial.println(F("=== Atari SIO -> Minigraf A 0507, emulace P1:  FW " FW_VERSION " ==="));
+  Serial.println(F("Prikazy z monitoru: IN; PU x,y; PD x,y; PR dx,dy; CI r; VS mm/s; PT ms,ms; AC us,us; DG0/1;  ? = stav"));
   printStatus();
 }
 
