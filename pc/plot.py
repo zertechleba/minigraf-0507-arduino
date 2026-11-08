@@ -30,7 +30,7 @@ import re
 import sys
 import time
 
-VERSION = "0.3.2"        # verze programu (odpovídá firmwaru 0.3.2)
+VERSION = "0.3.3"        # verze programu (potřebuje firmware 0.3 nebo novější)
 
 DEFAULT_PORT = "COM4"     # port Arduina s plotterem
 
@@ -111,6 +111,15 @@ def send_lines(port, lines):
     ser.reset_input_buffer()
     ver = firmware_version(ser)
     print("plot.py %s | firmware v Arduinu: %s" % (VERSION, ver or "neznámá (starší než 0.2?)"))
+    if "HM;" in lines:
+        try:
+            vt = tuple(int(x) for x in (ver or "0").split("."))
+        except ValueError:
+            vt = (0,)
+        if vt < (0, 3):
+            ser.close()
+            sys.exit("Firmware v Arduinu (%s) nezná najetí na nulu HM – potřeba je verze 0.3 nebo novější.\n"
+                     "Nahraj do Arduina aktuální minigraf_sio.ino, nebo kresli s volbou --nohome." % (ver or "neznámá"))
     t0 = time.time()
     retries_total = 0
     for n, line in enumerate(lines, 1):
@@ -119,9 +128,16 @@ def send_lines(port, lines):
         deadline = time.time() + REPLY_TIMEOUT
         probe_at = time.time() + PROBE_AFTER
         probed = False
+        saw_hm = False
         while True:
             reply = ser.readline().decode("ascii", errors="ignore").strip()
+            if reply.startswith("HM:"):
+                saw_hm = True
+                print("\r  " + reply)
             if reply == "hotovo":
+                if line == "HM;" and not saw_hm:
+                    ser.close()
+                    sys.exit("\nArduino potvrdilo HM, ale hlava na nulu nenajela (firmware HM nezná?). Kreslení zastaveno.")
                 break
             if reply.startswith("==="):
                 sys.exit("\nARDUINO SE RESTARTOVALO u řádku %d/%d (%s).\n"

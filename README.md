@@ -113,6 +113,7 @@ Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_navod_v0.3.2.pdf).
 
 ## Historie verzí
 
+- **0.3.3** (jen programy pro PC) – `plot.py` před kreslením ověří, že firmware zná `HM` (verze 0.3 a novější), a zastaví se s jasnou hláškou, když hlava na nulu nenajede.
 - **0.3.2** – nové výchozí hodnoty ověřené tiskem: zrychlení `AC6000,250`, šikmé čáry plnou rychlostí `DG0`, prodleva pera `PT30,70`.
 - **0.3.1** – oprava: `plot.py` se sám zotaví z výpadku komunikace (po 20 s se zeptá Arduina a řádek pošle znovu), firmware zahodí neúplný příkaz, `plot.py` opět vypisuje verzi firmwaru.
 - **0.3** – najetí na levý doraz `HM` (automaticky před každým výkresem z PC, `--nohome`), absolutní poloha a meze plochy `LM` uložené v EEPROM (ověřená mez X = 1580), `IN` už nehýbe motory.

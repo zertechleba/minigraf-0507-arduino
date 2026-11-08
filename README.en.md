@@ -114,6 +114,7 @@ Note: the firmware and the PC programs print their status messages in Czech.
 
 ## Version history
 
+- **0.3.3** (PC programs only) – `plot.py` checks that the firmware supports `HM` (version 0.3 or newer) and stops with a clear message if the head does not home.
 - **0.3.2** – new defaults verified by printing: acceleration `AC6000,250`, diagonal lines at full speed `DG0`, pen delay `PT30,70`.
 - **0.3.1** – fix: `plot.py` recovers from communication dropouts (after 20 s it queries the Arduino and resends the line), the firmware discards incomplete commands, `plot.py` prints the firmware version again.
 - **0.3** – homing to the left stop `HM` (automatic before every PC drawing, `--nohome`), absolute position and area limits `LM` stored in EEPROM (verified X limit = 1580), `IN` no longer moves the motors.
