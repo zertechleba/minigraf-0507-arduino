@@ -7,7 +7,7 @@ z počítače **Atari XE/XL** (přes SIO) i z **PC** (přes USB).
 
 ![Ukázka – nápis s rámečkem a hvězdou](docs/img/ukazka_napis.jpg)
 
-*Autor: Zdeněk Kotrba · © 2026 · verze 0.3.5 (firmware 0.3.5)*
+*Autor: Zdeněk Kotrba · © 2026 · verze 0.3.8 (firmware 0.3.8)*
 
 ---
 
@@ -35,8 +35,8 @@ Atari XE ──SIO──[3× optočlen]── Arduino ──7 signálů── Mi
 | `firmware/minigraf_sio/minigraf_sio.ino` | firmware pro Arduino Nano Every (ATmega4809) a Leonardo/Micro (ATmega32U4) |
 | `pc/plot.py` | posílání HPGL souborů z PC |
 | `pc/text_plot.py` | nápisy, text v řádcích a zkušební stránka |
-| `docs/Minigraf_0507_navod_v0.3.5.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
-| `docs/Minigraf_0507_manual_v0.3.5_EN.pdf` | kompletní návod anglicky |
+| `docs/Minigraf_0507_navod_v0.3.8.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
+| `docs/Minigraf_0507_manual_v0.3.8_EN.pdf` | kompletní návod anglicky |
 | `docs/img/` | schémata zapojení (CZ i EN) a fotky výsledků |
 
 ## Hardware
@@ -86,14 +86,14 @@ py plot.py obrazek.hpgl
 Šetrnější kreslení (starší plotter): `py text_plot.py --test --portrait --send --accel 9000,150 --diag 1`
 
 Výchozí port je `COM4` (jiný: `py plot.py COM7 obrazek.hpgl` nebo `--port COM7`).
-Před kreslením hlava sama najede na levý doraz a startovní pozici X = 60 (příkaz `HM`); vypne se volbou `--nohome`.
+Papír A4 zakládej **horní hranou k výřezům pod přítlačnými kolečky posuvu**. Před kreslením hlava sama najede na levý doraz a startovní pozici X = 60, Y = 144 (příkaz `HM`); vypne se volbou `--nohome`.
 
 ## Přehled příkazů
 
 | Příkaz | Význam |
 |---|---|
-| `HM[x];` | najetí na levý doraz (X = 0) a pak na startovní pozici (výchozí X = 60) |
-| `LM x[,y];` | meze plochy v krocích od dorazu, uloží se do EEPROM (výchozí 1580, 2103) |
+| `HM[x[,y]];` | najetí na levý doraz (X = 0), založený papír = Y 0, pak na start (výchozí 60,144) |
+| `LM x[,y];` | meze plochy v krocích od dorazu, uloží se do EEPROM (výchozí 1580, 2284) |
 | `IN;` | aktuální poloha = počátek kreslení 0,0, pero nahoru |
 | `PU x,y;` | pero nahoru a přesun |
 | `PD x,y,...;` | pero dolů a kreslení |
@@ -105,7 +105,7 @@ Před kreslením hlava sama najede na levý doraz a startovní pozici X = 60 (p�
 | `DG0;` / `DG1;` | šikmé čáry plnou rychlostí / zpomalené ×1,4 (`DG;` = 0) |
 | `?` | jen z USB: verze firmwaru a stav |
 
-Jednotka = 1 krok = 0,125 mm. Kreslicí plocha od startovní pozice 1521 × 2104 kroků (190 × 263 mm).
+Jednotka = 1 krok = 0,125 mm. Kreslicí plocha od startovní pozice 1520 × 2140 kroků (190 × 267,5 mm) = A4 s okraji 10 mm po stranách a 15 mm nahoře a dole.
 
 ![Zkušební stránka](docs/img/ukazka_test.jpg)
 
@@ -113,10 +113,11 @@ Jednotka = 1 krok = 0,125 mm. Kreslicí plocha od startovní pozice 1521 × 2104
 *Kaňka v posledním řádku u „JKLM“ vznikla tím, že se na USB ztratil jeden příkaz a verze 0.3.4 čekala 20 s
 s perem dole, než ho poslala znovu. Od verze 0.3.5 firmware pero po 1 s sám zvedne a `plot.py` se zeptá už po 3 s.*
 
-Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_navod_v0.3.5.pdf).
+Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_navod_v0.3.8.pdf).
 
 ## Historie verzí
 
+- **0.3.8** – osa Y vztažená k založení papíru: start po `HM` je 60,144 a mez Y 2284, takže na A4 vyjdou okraje 10 / 10 / 15 / 15 mm (změřeno) a papír nevypadne z koleček posuvu; `text_plot.py` počítá s plochou 190 × 267,5 mm (výchozí `--margin` 8 / 5 mm).
 - **0.3.5** – žádné kaňky při výpadku: firmware zvedne pero, když 1 s nepřijde příkaz; `plot.py` se zotaví už po 3 s.
 - **0.3.4** – oprava příčiny výpadků: stavový výpis každých 10 s mohl zahltit 64bajtový přijímací buffer Arduina a uříznout příkaz; výpis se teď neposílá během kreslení a `plot.py` posílá řádky kratší než 64 znaků.
 - **0.3.3** (jen programy pro PC) – `plot.py` před kreslením ověří, že firmware zná `HM` (verze 0.3 a novější), a zastaví se s jasnou hláškou, když hlava na nulu nenajede.

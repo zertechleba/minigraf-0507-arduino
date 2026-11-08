@@ -14,8 +14,8 @@ Volby:
     --frame       dvojitý rámeček kolem stránky
     --star        osmicípá hvězda nad nápisem
     --flip        otočí výkres o 180° (když vyjde vzhůru nohama)
-    --margin 8    okraj textu od kraje pracovní plochy v mm (výchozí 15,
-                  rámeček je 7 mm vně, nejméně však 1 mm od kraje)
+    --margin 8    okraj uvnitř kreslicí plochy v mm (výchozí 8 u nápisu, 5 u textu;
+                  rámeček je 7 mm vně textu, nejméně 1 mm od kraje plochy)
     --preview     uloží náhled napis.png (potřebuje matplotlib)
     --send        hned poslat na plotter (port COM4, plot.py musí být ve stejné složce)
     --port COMx   jiný port než COM4
@@ -26,7 +26,9 @@ Volby:
     --nohome      nenajíždět na levý doraz (s --send)
     --version     verze programu
 
-Pracovní plocha od startovní pozice (po HM a IN): 1521 x 2104 kroků (190 x 263 mm).
+Kreslicí plocha od startovní pozice (po HM a IN): 1520 x 2140 kroků (190 x 267,5 mm)
+= A4 s okraji 10 mm po stranách a 15 mm nahoře a dole (firmware 0.3.8).
+Volba --margin přidává okraj UVNITŘ této plochy.
 Nápis běží podél dlouhé strany (osa Y) = A4 na šířku.
 Umí velká i malá písmena, 0–9, interpunkci a českou diakritiku.
 
@@ -42,11 +44,11 @@ import argparse
 import math
 import unicodedata
 
-VERSION = "0.3.5"        # verze programu (potřebuje firmware 0.3 nebo novější, doporučeno 0.3.5)
+VERSION = "0.3.8"        # verze programu (potřebuje firmware 0.3 nebo novější, doporučeno 0.3.8)
 
-X_MAX, Y_MAX = 1520, 2103          # kroky od počátku: X = mez 1580 - start 60 (firmware 0.3)
+X_MAX, Y_MAX = 1520, 2140          # kroky od počátku: X = 1580 - 60, Y = 2284 - 144 (firmware 0.3.8)
 STEPS_PER_MM = 8
-MARGIN = 15 * STEPS_PER_MM          # okraj textu (mění --margin)
+MARGIN = 8 * STEPS_PER_MM           # okraj uvnitř kreslicí plochy (mění --margin)
 
 # ---- jednoduchý čárový font: mřížka 4 x 6, účaří y=0 ----
 O_ = [(1, 0), (0, 1), (0, 5), (1, 6), (3, 6), (4, 5), (4, 1), (3, 0), (1, 0)]
@@ -180,7 +182,7 @@ def star(cx, cy, r):
     return [pts]
 
 
-def build(text, bold, frame, with_star, flip, margin_mm=15):
+def build(text, bold, frame, with_star, flip, margin_mm=8):
     MARGIN = int(margin_mm * STEPS_PER_MM)
     strokes_u, width_u = text_strokes(text)
     page_len = Y_MAX - 2 * MARGIN                    # podél nápisu (osa Y)
@@ -316,15 +318,15 @@ def main():
     ap.add_argument("--diag", type=int, choices=(0, 1), default=None, help="šikmé čáry: 0 = plná rychlost, 1 = zpomalené")
     ap.add_argument("--nohome", action="store_true", help="nenajíždět na začátku na levý doraz")
     ap.add_argument("--version", action="version", version="text_plot.py " + VERSION)
-    ap.add_argument("--margin", type=float, default=15)
+    ap.add_argument("--margin", type=float, default=8)
     a = ap.parse_args()
 
     if a.file:
         with open(a.file, encoding="utf-8") as f:
             a.text = f.read()
     if a.test or a.size > 0 or a.portrait:
-        if a.margin == 15:
-            a.margin = 10
+        if a.margin == 8:                    # výchozí okraj u textu v řádcích
+            a.margin = 5
         plot_paths, page_paths, k = build_text(a.text, a.size or 5, a.bold, a.frame,
                                                a.flip, a.margin, a.test, a.portrait)
     else:

@@ -30,7 +30,7 @@ import re
 import sys
 import time
 
-VERSION = "0.3.5"        # verze programu (potřebuje firmware 0.3 nebo novější, doporučeno 0.3.5)
+VERSION = "0.3.8"        # verze programu (potřebuje firmware 0.3 nebo novější, doporučeno 0.3.8)
 
 DEFAULT_PORT = "COM4"     # port Arduina s plotterem
 

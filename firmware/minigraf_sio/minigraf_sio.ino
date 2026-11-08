@@ -1,5 +1,5 @@
 /*
- * Atari XE (SIO) -> Aritma Minigraf A 0507      firmware verze 0.3.5
+ * Atari XE (SIO) -> Aritma Minigraf A 0507      firmware verze 0.3.8
  * -----------------------------------------
  * Arduino se na SIO sběrnici tváří jako tiskárna P1: (ID $40).
  * Z Atari se kreslí obyčejným LPRINT příkazy ve zjednodušeném HPGL:
@@ -13,12 +13,13 @@
  *   VS v;            rychlost v mm/s (např. VS30;), VS; = výchozí
  *   PT d[,u];        prodleva pera v ms: po položení d, po zvednutí u (PT; = výchozí)
  *   LM x[,y];        meze plochy v krocích absolutně od levého dorazu, uloží se do EEPROM (LM; = vypsat)
- *   HM[x];           najetí na levý doraz (X=0) a popojetí na X (výchozí 60), Y = 0
+ *   HM[x[,y]];       najetí na levý doraz (X=0), aktuální poloha papíru = Y 0, pak přesun na start (výchozí 60,144)
  *   AC s[,r];        zrychlení: pauza při rozjezdu s µs, zkrácení r µs/krok (AC; = výchozí)
  *   (pero dole a 1 s žádný příkaz -> firmware ho sám zvedne, aby nevznikla kaňka)
  *   DG0; / DG1;      šikmé čáry plnou rychlostí / zpomalené ×1,4 (DG; = výchozí)
  *
- * Jednotka = 1 krok Minigrafu = 0,125 mm. Meze plochy nastaví LM (výchozí 0..1580 x 0..2103, ověřeno).
+ * Jednotka = 1 krok Minigrafu = 0,125 mm. Meze plochy nastaví LM (výchozí 0..1580 x 0..2284 = A4 s okraji 10/10/15/15 mm).
+ * Papír A4 se zakládá horní hranou k výřezům pod přítlačnými kolečky. Po HM je pero na startu 60,144.
  *
  * Desky (vybírá se automaticky podle procesoru):
  *   Arduino Nano Every (ATmega4809)  – doporučeno
@@ -42,7 +43,7 @@
 #include <math.h>
 #include <EEPROM.h>
 
-#define FW_VERSION "0.3.5"
+#define FW_VERSION "0.3.8"
 
 // ================= Nastavení =================
 const uint8_t  PIN_CMD        = 2;      // SIO Command přes optočlen (LOW = aktivní)
@@ -54,12 +55,14 @@ const bool     PEN_DOWN_LEVEL = HIGH;   // ověřit na plotteru, případně LOW
 const int8_t   X_DIR          = +1;     // -1 když osa jede obráceně
 const int8_t   Y_DIR          = +1;
 const int      X_MAX_DEF      = 1580;   // výchozí meze (absolutně od levého dorazu), mění LM
-const int      Y_MAX_DEF      = 2103;   // a ukládají se do EEPROM
+const int      Y_MAX_DEF      = 2284;   // a ukládají se do EEPROM. A4: okraj 15 mm na konci osy Y
+                                        // (změřeno: 2308 = 12 mm), papír zůstane v kolečkách posuvu
 const unsigned STEP_US        = 2083;   // výchozí rychlost 60 mm/s (125000 / 60)
 const unsigned START_US       = 6000;   // výchozí pauza při rozjezdu z klidu (~21 mm/s), mění AC (ověřeno)
 const unsigned RAMP_US        = 250;    // výchozí zkrácení pauzy každým krokem rozjezdu, mění AC (ověřeno)
 const bool     DIAG_SLOW      = false;  // výchozí: šikmé čáry plnou rychlostí (DG0), mění DG (ověřeno)
-const int      HOME_X         = 60;     // HM: kam popojet od levého dorazu (startovní pozice osy X)
+const int      HOME_X         = 60;     // HM: start X od levého dorazu (10 mm od levého okraje A4)
+const int      HOME_Y         = 144;    // HM: start Y od založení papíru k výřezům = 15 mm od okraje A4 (změřeno: 80 = 7 mm)
 const int8_t   HOME_DIR       = -1;     // HM: směr k dorazu (-1 = k menším X); +1 když jede na druhou stranu
 const int      HOME_EXTRA     = 200;    // HM: o kolik kroků víc než šířka plochy (jistota dorazu)
 const unsigned HOME_US        = 2500;   // HM: rychlost jízdy k dorazu (~50 mm/s)   // výchozí zpomalení šikmých čar ×1,4, mění DG
@@ -82,7 +85,7 @@ static int     xMax = X_MAX_DEF, yMax = Y_MAX_DEF;
 
 // ---- meze v EEPROM ----
 struct Limits { uint16_t magic; int16_t x, y; };
-const uint16_t LIM_MAGIC = 0x4D47;      // "MG"
+const uint16_t LIM_MAGIC = 0x4D4A;      // změněno v 0.3.8 -> staré meze v EEPROM se nepoužijí, platí nové výchozí
 static void loadLimits() {
   Limits l; EEPROM.get(0, l);
   if (l.magic == LIM_MAGIC && l.x >= 100 && l.y >= 100) { xMax = l.x; yMax = l.y; }
@@ -158,8 +161,9 @@ static void lineTo(int x, int y) {          // Bresenham, obě osy současně
   }
 }
 
-// HM: jízda na levý doraz přes celou šířku (motor na dorazu proklouzne), pak na startovní X
-static void homeX(int targetX) {
+// HM: jízda na levý doraz přes celou šířku (motor na dorazu proklouzne), pak na start X,Y.
+// Osa Y nemá doraz: aktuální poloha papíru (právě založený k výřezům) se bere jako Y = 0.
+static void homeX(int targetX, int targetY) {
   pen(false);
   long n = (long)xMax + HOME_EXTRA;
   for (long i = 0; i < n; i++) {
@@ -171,11 +175,11 @@ static void homeX(int targetX) {
   }
   delay(100);                              // dorazit a uklidnit
   posX = 0;
-  posY = 0;                                // osa Y (papír) se nehýbe, aktuální řádek = 0
-  orgX = 0; orgY = 0;                      // souřadnice = absolutní (PU60,0 = startovní pozice)
+  posY = 0;                                // papír založený k výřezům = Y 0
+  orgX = 0; orgY = 0;                      // souřadnice = absolutní (PU60,144 = startovní pozice)
   absMode = true;
-  lineTo(targetX, 0);
-  Serial.print(F("HM: na dorazu X=0, ted X=")); Serial.print(posX); Serial.println(F(" Y=0"));
+  lineTo(targetX, targetY);
+  Serial.print(F("HM: na dorazu X=0, ted X=")); Serial.print(posX); Serial.print(F(" Y=")); Serial.println(posY);
 }
 
 static void moveCoords(const long *v, uint8_t n) {
@@ -226,8 +230,8 @@ static void execCmd(char c1, char c2, const long *v, uint8_t n) {
     Serial.print(F("meze: X 0..")); Serial.print(xMax); Serial.print(F(" Y 0..")); Serial.print(yMax);
     Serial.println(n >= 1 ? F(" (ulozeno)") : F(""));
   }
-  else if (c1 == 'H' && c2 == 'M') {       // HM[x]; najetí na levý doraz a pak na X (výchozí 60)
-    homeX(n >= 1 ? (int)v[0] : HOME_X);
+  else if (c1 == 'H' && c2 == 'M') {       // HM[x[,y]]; doraz X, papír = Y 0, pak start (výchozí 60,144)
+    homeX(n >= 1 ? (int)v[0] : HOME_X, n >= 2 ? (int)v[1] : HOME_Y);
   }
   else if (c1 == 'A' && c2 == 'C') {       // AC rozjezd_us[,ramp_us], AC; = výchozí
     if (n >= 1) { startUs = constrain(v[0], MIN_STEP_US, 16000); if (n >= 2) rampUs = constrain(v[1], 1, 5000); }
