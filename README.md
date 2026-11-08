@@ -109,6 +109,10 @@ Jednotka = 1 krok = 0,125 mm. Kreslicí plocha od startovní pozice 1521 × 2104
 
 ![Zkušební stránka](docs/img/ukazka_test.jpg)
 
+*Zkušební stránka 6 / 4 / 3 / 2 mm, fix 0,5 mm, výchozí nastavení verze 0.3.4.*
+*Kaňka v posledním řádku u „JKLM“ vznikla tím, že se na USB ztratil jeden příkaz a verze 0.3.4 čekala 20 s
+s perem dole, než ho poslala znovu. Od verze 0.3.5 firmware pero po 1 s sám zvedne a `plot.py` se zeptá už po 3 s.*
+
 Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_navod_v0.3.5.pdf).
 
 ## Historie verzí

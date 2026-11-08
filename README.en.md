@@ -109,6 +109,10 @@ Unit = 1 step = 0.125 mm. Drawing area from the start position 1521 × 2104 step
 
 ![Test page](docs/img/ukazka_test.jpg)
 
+*Test page 6 / 4 / 3 / 2 mm, 0.5 mm marker, default settings of version 0.3.4.*
+*The ink blot in the last line near "JKLM" appeared because one command was lost on USB and version 0.3.4 waited
+20 s with the pen down before resending it. From version 0.3.5 the firmware lifts the pen after 1 s and `plot.py` queries after 3 s.*
+
 See the [PDF manual](docs/Minigraf_0507_manual_v0.3.5_EN.pdf) for details.
 Note: the firmware and the PC programs print their status messages in Czech.
 
