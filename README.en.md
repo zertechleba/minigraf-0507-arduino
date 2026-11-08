@@ -7,7 +7,7 @@ plot from an **Atari XE/XL** computer (via SIO) and from a **PC** (via USB).
 
 ![Example – lettering with frame and star](docs/img/ukazka_napis.jpg)
 
-*Author: Zdeněk Kotrba · © 2026 · version 0.2 (firmware 0.2)*
+*Author: Zdeněk Kotrba · © 2026 · version 0.3 (firmware 0.3)*
 
 ---
 
@@ -35,8 +35,8 @@ Atari XE ──SIO──[3× optocoupler]── Arduino ──7 signals── Mi
 | `firmware/minigraf_sio/minigraf_sio.ino` | firmware for Arduino Nano Every (ATmega4809) and Leonardo/Micro (ATmega32U4) |
 | `pc/plot.py` | sending HPGL files from a PC |
 | `pc/text_plot.py` | lettering, text in lines and test page |
-| `docs/Minigraf_0507_manual_v0.2_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
-| `docs/Minigraf_0507_navod_v0.2.pdf` | full manual in Czech |
+| `docs/Minigraf_0507_manual_v0.3_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
+| `docs/Minigraf_0507_navod_v0.3.pdf` | full manual in Czech |
 | `docs/img/` | schematics (EN and CZ) and photos of results |
 
 ## Hardware
@@ -69,7 +69,7 @@ Schematics: [Nano Every](docs/img/schema_nano_every_en.jpg) · [Leonardo / Micro
 
 ### 2. Plotting from Atari BASIC
 ```basic
-10 LPRINT "IN;"
+10 LPRINT "HM;IN;"
 20 LPRINT "PU100,100;PD1400,100,1400,2000,100,2000,100,100;"
 30 LPRINT "PU750,1050;CI400;"
 40 LPRINT "PU0,0;"
@@ -86,13 +86,15 @@ py plot.py drawing.hpgl
 Faster drawing of small text: `py text_plot.py --test --portrait --send --accel 6000,250 --diag 0`
 
 The default port is `COM4` (another one: `py plot.py COM7 drawing.hpgl` or `--port COM7`).
-Before plotting, move the head to the bottom-left corner – that becomes point 0,0.
+Before plotting the head homes itself to the left stop and the start position X = 60 (`HM` command); disable with `--nohome`.
 
 ## Command reference
 
 | Command | Meaning |
 |---|---|
-| `IN;` | current position = 0,0, pen up |
+| `HM[x];` | home to the left stop (X = 0), then move to the start position (default X = 60) |
+| `LM x[,y];` | area limits in steps from the stop, stored in EEPROM (default 1580, 2103) |
+| `IN;` | current position = drawing origin 0,0, pen up |
 | `PU x,y;` | pen up and move |
 | `PD x,y,...;` | pen down and draw |
 | `PA;` / `PR;` | absolute / relative coordinates |
@@ -103,15 +105,16 @@ Before plotting, move the head to the bottom-left corner – that becomes point 
 | `DG0;` / `DG1;` | diagonal lines at full speed / slowed ×1.4 (`DG;` = 1) |
 | `?` | USB only: firmware version and status |
 
-Unit = 1 step = 0.125 mm. Plotting area 1504 × 2104 steps (188 × 263 mm).
+Unit = 1 step = 0.125 mm. Drawing area from the start position 1521 × 2104 steps (190 × 263 mm).
 
 ![Test page](docs/img/ukazka_test.jpg)
 
-See the [PDF manual](docs/Minigraf_0507_manual_v0.2_EN.pdf) for details.
+See the [PDF manual](docs/Minigraf_0507_manual_v0.3_EN.pdf) for details.
 Note: the firmware and the PC programs print their status messages in Czech.
 
 ## Version history
 
+- **0.3** – homing to the left stop `HM` (automatic before every PC drawing, `--nohome`), absolute position and area limits `LM` stored in EEPROM (verified X limit = 1580), `IN` no longer moves the motors.
 - **0.2** – `AC` (acceleration) and `DG` (diagonal lines) commands, firmware version in `?` status and in the PC programs (`--version`), `--accel` and `--diag` options.
 - **0.1** – first version: P1: printer emulation for Atari, PC control, lettering and text.
 

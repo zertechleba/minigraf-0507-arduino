@@ -7,7 +7,7 @@ z počítače **Atari XE/XL** (přes SIO) i z **PC** (přes USB).
 
 ![Ukázka – nápis s rámečkem a hvězdou](docs/img/ukazka_napis.jpg)
 
-*Autor: Zdeněk Kotrba · © 2026 · verze 0.2 (firmware 0.2)*
+*Autor: Zdeněk Kotrba · © 2026 · verze 0.3 (firmware 0.3)*
 
 ---
 
@@ -35,8 +35,8 @@ Atari XE ──SIO──[3× optočlen]── Arduino ──7 signálů── Mi
 | `firmware/minigraf_sio/minigraf_sio.ino` | firmware pro Arduino Nano Every (ATmega4809) a Leonardo/Micro (ATmega32U4) |
 | `pc/plot.py` | posílání HPGL souborů z PC |
 | `pc/text_plot.py` | nápisy, text v řádcích a zkušební stránka |
-| `docs/Minigraf_0507_navod_v0.2.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
-| `docs/Minigraf_0507_manual_v0.2_EN.pdf` | kompletní návod anglicky |
+| `docs/Minigraf_0507_navod_v0.3.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
+| `docs/Minigraf_0507_manual_v0.3_EN.pdf` | kompletní návod anglicky |
 | `docs/img/` | schémata zapojení (CZ i EN) a fotky výsledků |
 
 ## Hardware
@@ -69,7 +69,7 @@ Schémata: [Nano Every](docs/img/schema_nano_every.jpg) · [Leonardo / Micro](do
 
 ### 2. Kreslení z Atari BASICu
 ```basic
-10 LPRINT "IN;"
+10 LPRINT "HM;IN;"
 20 LPRINT "PU100,100;PD1400,100,1400,2000,100,2000,100,100;"
 30 LPRINT "PU750,1050;CI400;"
 40 LPRINT "PU0,0;"
@@ -86,13 +86,15 @@ py plot.py obrazek.hpgl
 Rychlejší kreslení malého písma: `py text_plot.py --test --portrait --send --accel 6000,250 --diag 0`
 
 Výchozí port je `COM4` (jiný: `py plot.py COM7 obrazek.hpgl` nebo `--port COM7`).
-Před kreslením posuň hlavu do levého dolního rohu – tam bude bod 0,0.
+Před kreslením hlava sama najede na levý doraz a startovní pozici X = 60 (příkaz `HM`); vypne se volbou `--nohome`.
 
 ## Přehled příkazů
 
 | Příkaz | Význam |
 |---|---|
-| `IN;` | aktuální poloha = 0,0, pero nahoru |
+| `HM[x];` | najetí na levý doraz (X = 0) a pak na startovní pozici (výchozí X = 60) |
+| `LM x[,y];` | meze plochy v krocích od dorazu, uloží se do EEPROM (výchozí 1580, 2103) |
+| `IN;` | aktuální poloha = počátek kreslení 0,0, pero nahoru |
 | `PU x,y;` | pero nahoru a přesun |
 | `PD x,y,...;` | pero dolů a kreslení |
 | `PA;` / `PR;` | absolutní / relativní souřadnice |
@@ -103,14 +105,15 @@ Před kreslením posuň hlavu do levého dolního rohu – tam bude bod 0,0.
 | `DG0;` / `DG1;` | šikmé čáry plnou rychlostí / zpomalené ×1,4 (`DG;` = 1) |
 | `?` | jen z USB: verze firmwaru a stav |
 
-Jednotka = 1 krok = 0,125 mm. Pracovní plocha 1504 × 2104 kroků (188 × 263 mm).
+Jednotka = 1 krok = 0,125 mm. Kreslicí plocha od startovní pozice 1521 × 2104 kroků (190 × 263 mm).
 
 ![Zkušební stránka](docs/img/ukazka_test.jpg)
 
-Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_navod_v0.2.pdf).
+Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_navod_v0.3.pdf).
 
 ## Historie verzí
 
+- **0.3** – najetí na levý doraz `HM` (automaticky před každým výkresem z PC, `--nohome`), absolutní poloha a meze plochy `LM` uložené v EEPROM (ověřená mez X = 1580), `IN` už nehýbe motory.
 - **0.2** – příkazy `AC` (zrychlení) a `DG` (šikmé čáry), verze firmwaru ve výpisu `?` a v programech pro PC (`--version`), volby `--accel` a `--diag`.
 - **0.1** – první verze: emulace tiskárny P1: pro Atari, ovládání z PC, nápisy a text.
 
