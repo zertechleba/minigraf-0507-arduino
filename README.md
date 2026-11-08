@@ -7,7 +7,7 @@ z počítače **Atari XE/XL** (přes SIO) i z **PC** (přes USB).
 
 ![Ukázka – nápis s rámečkem a hvězdou](docs/img/ukazka_napis.jpg)
 
-*Autor: Zdeněk Kotrba · © 2026 · verze 0.4.3 (firmware 0.4.2)*
+*Autor: Zdeněk Kotrba · © 2026 · verze 0.4.4 (firmware 0.4.2)*
 
 ---
 
@@ -39,8 +39,8 @@ Atari XE ──SIO──[3× optočlen]── Arduino ──7 signálů── Mi
 | `pc/plot.py` | posílání HPGL souborů z PC |
 | `pc/text_plot.py` | nápisy, text v řádcích a zkušební stránka, blokové i psací písmo |
 | `pc/hershey_script.py` | data psacího písma (`--font psane`), musí být ve stejné složce jako `text_plot.py` |
-| `docs/Minigraf_0507_XY4131_navod_v0.4.3.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
-| `docs/Minigraf_0507_XY4131_manual_v0.4.3_EN.pdf` | kompletní návod anglicky |
+| `docs/Minigraf_0507_XY4131_navod_v0.4.4.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
+| `docs/Minigraf_0507_XY4131_manual_v0.4.4_EN.pdf` | kompletní návod anglicky |
 | `docs/img/` | schémata zapojení (CZ i EN) a fotky výsledků |
 
 ## Hardware
@@ -80,7 +80,7 @@ Konektor: na plotteru kulatá sedmipólová zásuvka **INPUT**, na kabelu vidlic
 
 ![Konektor XY 4131](docs/img/konektor_xy4131.jpg)
 
-Doporučené 220 Ω v sérii s D3–D6. Plotter vybereš příkazem `PL4131;` (zpět `PL0507;`), volba se uloží do EEPROM.
+Doporučené 220 Ω v sérii s D3–D6. Plotter vybereš příkazem `PL4131;` (zpět `PL0507;`), volba se uloží do EEPROM. Přepnout ho jde ze Sériového monitoru, z PC (`py plot.py --select 0507`, nebo `--plotter 4131` přímo při kreslení) i z Atari (`LPRINT "PL0507;"`).
 Krok 0,1 mm, dráha vozíku asi 180 mm (mez X = 1780), start po `HM` 10 mm od levého koncového kontaktu.
 Programy pro PC si plotter zjistí z Arduina samy:
 ```
@@ -143,10 +143,11 @@ Jednotka = 1 krok plotteru: Minigraf 0,125 mm, XY 4131 0,1 mm. Výchozí hodnoty
 *Kaňka v posledním řádku u „JKLM“ vznikla tím, že se na USB ztratil jeden příkaz a verze 0.3.4 čekala 20 s
 s perem dole, než ho poslala znovu. Od verze 0.3.5 firmware pero po 1 s sám zvedne a `plot.py` se zeptá už po 3 s.*
 
-Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_XY4131_navod_v0.4.3.pdf).
+Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_XY4131_navod_v0.4.4.pdf).
 
 ## Historie verzí
 
+- **0.4.4** (jen programy pro PC) – přepnutí plotteru z příkazového řádku: `py plot.py --select 0507` / `--select 4131`; `--plotter 0507/4131` v `plot.py` i `text_plot.py` plotter v Arduinu rovnou přepne. V návodu ukázka výběru plotteru z Atari BASICu. Firmware zůstává 0.4.2.
 - **0.4.3** (jen `text_plot.py`) – **písmo jako psané rukou**: volba `--font psane` (Hersheyho jednotahové psací písmo s doplněnou českou diakritikou, data v `hershey_script.py`); text se zalamuje podle skutečné šířky písmen. Firmware zůstává 0.4.2.
 
 ![Psací písmo](docs/img/psane_ukazka.png)

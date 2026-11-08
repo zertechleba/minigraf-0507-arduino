@@ -11,7 +11,10 @@ Volby:
     --scale 0.2   přepočet souřadnic. Výchozí podle plotteru: HPGL z Inkscape
                   (40 jednotek/mm) -> Minigraf 0.2 (8 kroků/mm), XY 4131 0.25 (10 kroků/mm)
     --scale 1     soubor už je v krocích plotteru (Minigraf 0,125 mm, XY 4131 0,1 mm)
-    --plotter 4131  pro --dry bez připojení (jinak se plotter zjistí z Arduina, příkaz PL)
+    --plotter 4131  kreslit pro tento plotter; má-li Arduino vybraný jiný, přepne ho
+                  (příkaz PL, uloží se). Bez volby se plotter zjistí z Arduina.
+    --select 0507   jen přepne plotter v Arduinu (0507 nebo 4131) a skončí:
+                  py plot.py --select 0507
     --dry         nic neposílá, jen vypíše, co by poslal
     --speed 30    rychlost kreslení v mm/s (bez volby = výchozí z Arduina)
     --pen 40,70   prodleva pera v ms: po položení, po zvednutí
@@ -31,7 +34,7 @@ import re
 import sys
 import time
 
-VERSION = "0.4.0"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
+VERSION = "0.4.4"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
 
 DEFAULT_PORT = "COM4"     # port Arduina s plotterem
 
@@ -125,6 +128,22 @@ def open_plotter(port):
     return ser, ver, pl
 
 
+def select_plotter(ser, pl):
+    """Přepne plotter v Arduinu příkazem PL (uloží se do EEPROM). Vrátí nově zjištěný plotter."""
+    ser.reset_input_buffer()
+    ser.write(("PL%s;\n" % pl).encode("ascii"))
+    deadline = time.time() + 3
+    while time.time() < deadline:
+        line = ser.readline().decode("ascii", errors="ignore").strip()
+        if line == "hotovo":
+            break
+    ver, found = firmware_info(ser)
+    print("Plotter v Arduinu přepnut na: %s" % ("XY 4131" if found == "4131" else "Minigraf A 0507"))
+    if found != pl:
+        sys.exit("Přepnutí se nepovedlo – firmware v Arduinu je asi starší než 0.4.0.")
+    return found
+
+
 def send_lines(port, lines, ver=None):
     """Pošle řádky na Arduino, po každém čeká na 'hotovo'. port = název portu nebo otevřený port."""
     if isinstance(port, str):
@@ -190,10 +209,12 @@ def send_lines(port, lines, ver=None):
 
 def main():
     ap = argparse.ArgumentParser(description="HPGL -> Minigraf A 0507 přes Arduino (plot.py %s)" % VERSION)
-    ap.add_argument("args", nargs="+", metavar="[PORT] SOUBOR",
+    ap.add_argument("args", nargs="*", metavar="[PORT] SOUBOR",
                     help="HPGL soubor, volitelně před ním port (výchozí %s)" % DEFAULT_PORT)
     ap.add_argument("--scale", type=float, default=None)
     ap.add_argument("--plotter", choices=("auto", "0507", "4131"), default="auto")
+    ap.add_argument("--select", choices=("0507", "4131"), default=None,
+                    help="jen přepnout plotter v Arduinu a skončit")
     ap.add_argument("--dry", action="store_true")
     ap.add_argument("--speed", type=int, default=0)
     ap.add_argument("--pen", default="")
@@ -202,6 +223,15 @@ def main():
     ap.add_argument("--nohome", action="store_true")
     ap.add_argument("--version", action="version", version="plot.py " + VERSION)
     a = ap.parse_args()
+    if a.select:                           # py plot.py [PORT] --select 0507
+        port = a.args[0] if a.args else DEFAULT_PORT
+        ser, _, found = open_plotter(port)
+        if found != a.select:
+            select_plotter(ser, a.select)
+        else:
+            print("Plotter už je vybraný, nic se nemění.")
+        ser.close()
+        return
     if len(a.args) == 1:
         port, fname = DEFAULT_PORT, a.args[0]
     elif len(a.args) == 2:
@@ -217,6 +247,8 @@ def main():
         ser, ver, found = open_plotter(port)
         if a.plotter == "auto":
             pl = found
+        elif found != pl:
+            select_plotter(ser, pl)
     scale = a.scale if a.scale is not None else SCALE[pl]
     lines = to_lines(text, scale)
     if not lines:

@@ -7,7 +7,7 @@ plot from an **Atari XE/XL** computer (via SIO) and from a **PC** (via USB).
 
 ![Example – lettering with frame and star](docs/img/ukazka_napis.jpg)
 
-*Author: Zdeněk Kotrba · © 2026 · version 0.4.3 (firmware 0.4.2)*
+*Author: Zdeněk Kotrba · © 2026 · version 0.4.4 (firmware 0.4.2)*
 
 ---
 
@@ -39,8 +39,8 @@ Atari XE ──SIO──[3× optocoupler]── Arduino ──7 signals── Mi
 | `pc/plot.py` | sending HPGL files from a PC |
 | `pc/text_plot.py` | lettering, text in lines and test page, block and script font |
 | `pc/hershey_script.py` | script font data (`--font psane`), must be in the same folder as `text_plot.py` |
-| `docs/Minigraf_0507_XY4131_manual_v0.4.3_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
-| `docs/Minigraf_0507_XY4131_navod_v0.4.3.pdf` | full manual in Czech |
+| `docs/Minigraf_0507_XY4131_manual_v0.4.4_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
+| `docs/Minigraf_0507_XY4131_navod_v0.4.4.pdf` | full manual in Czech |
 | `docs/img/` | schematics (EN and CZ) and photos of results |
 
 ## Hardware
@@ -80,7 +80,7 @@ Connector: round 7-pin **INPUT** socket on the plotter, TESLA **WK 180 35** plug
 
 ![XY 4131 connector](docs/img/konektor_xy4131.jpg)
 
-220 Ω in series with D3–D6 recommended. Select the plotter with `PL4131;` (back: `PL0507;`); the choice is stored in EEPROM.
+220 Ω in series with D3–D6 recommended. Select the plotter with `PL4131;` (back: `PL0507;`); the choice is stored in EEPROM. It can be switched from the Serial Monitor, from a PC (`py plot.py --select 0507`, or `--plotter 4131` directly when drawing) and from the Atari (`LPRINT "PL0507;"`).
 Step 0.1 mm, carriage travel about 180 mm (X limit = 1780), start after `HM` 10 mm from the left end contact.
 The PC programs detect the plotter from the Arduino:
 ```
@@ -143,11 +143,12 @@ Unit = 1 plotter step: Minigraf 0.125 mm, XY 4131 0.1 mm. Each plotter has its o
 *The ink blot in the last line near "JKLM" appeared because one command was lost on USB and version 0.3.4 waited
 20 s with the pen down before resending it. From version 0.3.5 the firmware lifts the pen after 1 s and `plot.py` queries after 3 s.*
 
-See the [PDF manual](docs/Minigraf_0507_XY4131_manual_v0.4.3_EN.pdf) for details.
+See the [PDF manual](docs/Minigraf_0507_XY4131_manual_v0.4.4_EN.pdf) for details.
 Note: the firmware and the PC programs print their status messages in Czech.
 
 ## Version history
 
+- **0.4.4** (PC programs only) – switching the plotter from the command line: `py plot.py --select 0507` / `--select 4131`; `--plotter 0507/4131` in `plot.py` and `text_plot.py` switches the Arduino directly. The manual shows plotter selection from Atari BASIC. Firmware stays 0.4.2.
 - **0.4.3** (`text_plot.py` only) – **handwriting-like script**: option `--font psane` (Hershey single-stroke script font with added Czech diacritics, data in `hershey_script.py`); text wraps by actual letter widths. Firmware stays 0.4.2.
 
 ![Script font](docs/img/psane_ukazka.png)

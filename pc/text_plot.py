@@ -28,7 +28,7 @@ Volby:
     --diag 0      šikmé čáry plnou rychlostí, 1 = zpomalené (s --send)
     --nohome      nenajíždět na levý doraz (s --send)
     --plotter 4131  plotter, pro který se kreslí (výchozí auto: s --send se zjistí
-                  z Arduina, bez --send Minigraf 0507)
+                  z Arduina, bez --send Minigraf 0507); s --send ho v Arduinu i přepne
     --version     verze programu
 
 Kreslicí plocha od startovní pozice (po HM a IN):
@@ -50,7 +50,7 @@ import argparse
 import math
 import unicodedata
 
-VERSION = "0.4.3"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
+VERSION = "0.4.4"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
 
 # kreslicí plocha v krocích od startovní pozice a kroků na mm podle plotteru
 PLOTTERS = {
@@ -417,7 +417,7 @@ def main():
         if a.plotter == "auto":
             pl = found
         elif found != pl:
-            print("POZOR: Arduino má vybraný jiný plotter (%s), kreslím pro %s." % (found, pl))
+            plot.select_plotter(ser, pl)
     set_plotter(pl)
     global FONT_STYLE
     FONT_STYLE = a.font
