@@ -12,6 +12,8 @@ nebo jen soubor a kreslení zvlášť:
 Volby:
     -o SOUBOR     výstupní soubor (výchozí napis.hpgl)
     --bold N      ztučnění: každé písmeno se obtáhne N-krát (1-4)
+    --font psane  písmo jako psané rukou (Hersheyho psací písmo, potřebuje soubor
+                  hershey_script.py ve stejné složce); výchozí --font blok
     --frame       dvojitý rámeček kolem stránky
     --star        osmicípá hvězda nad nápisem
     --flip        otočí výkres o 180° (když vyjde vzhůru nohama)
@@ -48,7 +50,7 @@ import argparse
 import math
 import unicodedata
 
-VERSION = "0.4.0"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
+VERSION = "0.4.3"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
 
 # kreslicí plocha v krocích od startovní pozice a kroků na mm podle plotteru
 PLOTTERS = {
@@ -174,12 +176,79 @@ def glyph(ch):
     return strokes
 
 
+# ---- psací písmo (Hershey "cursive", --font psane) ----
+FONT_STYLE = "blok"                 # "blok" = vlastní čárové písmo, "psane" = Hershey cursive
+SK = 6 / 21                         # Hershey: velká písmena 21 jednotek -> 6 jednotek našeho písma
+_script = None
+
+
+def _script_data():
+    global _script
+    if _script is None:
+        import os, sys
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from hershey_script import GLYPHS
+        _script = GLYPHS
+    return _script
+
+
+def _accent(mark, cx, y0):
+    if mark == '\u0301':                                  # čárka
+        return [[(cx - 0.2, y0), (cx + 0.55, y0 + 0.8)]]
+    if mark == '\u030C':                                  # háček
+        return [[(cx - 0.45, y0 + 0.65), (cx, y0), (cx + 0.45, y0 + 0.65)]]
+    if mark == '\u030A':                                  # kroužek
+        return [[(cx + 0.32 * math.cos(a * math.pi / 4), y0 + 0.35 + 0.32 * math.sin(a * math.pi / 4))
+                 for a in range(9)]]
+    return []
+
+
+def script_glyph(ch):
+    """Tahy a šířka znaku psacího písma v jednotkách našeho písma (účaří 0, velká písmena 6)."""
+    G = _script_data()
+    d = unicodedata.normalize('NFD', ch)
+    base, marks = d[0], d[1:]
+    if base not in G:
+        base = '?'
+    L, Rr, st = G[base]
+    strokes = [[((x - L) * SK, (9 - y) * SK) for x, y in t] for t in st]
+    low = base.islower()
+    if base == 'i' and marks:                                # í bez tečky
+        strokes = [t for t in strokes if min(y for _, y in t) < 2.9]
+    for mark in marks:
+        pts = [pt for t in strokes for pt in t]
+        if low and mark == '\u030C' and base in 'dt':        # ď ť = apostrof vpravo nahoře
+            xt, yt = max(pts, key=lambda q: q[1])
+            strokes.append([(xt + 0.55, yt - 0.1), (xt + 0.3, yt - 0.85)])
+            continue
+        top = [x for x, y in pts if y >= (1.6 if low else 4.2)] or [x for x, _ in pts]
+        cx = (min(top) + max(top)) / 2 + (0.15 if low else 0.6)   # písmo je skloněné doprava
+        strokes += _accent(mark, cx, 3.3 if low else 6.5)
+    return strokes, (Rr - L) * SK
+
+
+def char_advance(ch):
+    return script_glyph(ch)[1] if FONT_STYLE == "psane" else ADVANCE
+
+
+def text_width(text):
+    if FONT_STYLE == "psane":
+        return sum(char_advance(c) for c in text)
+    return len(text) * ADVANCE - 2
+
+
 def text_strokes(text):
     out = []
-    for i, ch in enumerate(text):
-        for s in glyph(ch):
-            out.append([(x + i * ADVANCE, y) for x, y in s])
-    return out, len(text) * ADVANCE - 2
+    x0 = 0.0
+    for ch in text:
+        if FONT_STYLE == "psane":
+            st, adv = script_glyph(ch)
+        else:
+            st, adv = glyph(ch), ADVANCE
+        for s in st:
+            out.append([(x + x0, y) for x, y in s])
+        x0 += adv
+    return out, text_width(text)
 
 
 def star(cx, cy, r):
@@ -225,12 +294,13 @@ def build(text, bold, frame, with_star, flip, margin_mm=8):
     return [[to_plot(u, v) for u, v in p] for p in paths], paths, k
 
 
-def wrap(text, cols):
+def wrap(text, maxw):
+    """Zalomí text na řádky široké nejvýš maxw jednotek písma."""
     out = []
     for para in text.replace("|", "\n").split("\n"):
         line = ""
         for w in para.split():
-            if line and len(line) + 1 + len(w) > cols:
+            if line and text_width(line + " " + w) > maxw:
                 out.append(line); line = w
             else:
                 line = (line + " " + w) if line else w
@@ -268,15 +338,13 @@ def build_text(text, size_mm, bold, frame, flip, margin_mm, test, portrait=False
     if test:
         for sz in (6, 4, 3, 2):
             k = sz * STEPS_PER_MM / 6
-            cols = int(page_len // (ADVANCE * k))
             lab, v = block(["%s mm:" % sz], 2.5, M, v)
-            p, v = block(wrap(TEST_TEXT, cols), sz, M, v, bold)
+            p, v = block(wrap(TEST_TEXT, page_len / k), sz, M, v, bold)
             paths += lab + p
             v -= 4 * STEPS_PER_MM
     else:
         k = size_mm * STEPS_PER_MM / 6
-        cols = int(page_len // (ADVANCE * k))
-        paths, v = block(wrap(text, cols), size_mm, M, v, bold)
+        paths, v = block(wrap(text, page_len / k), size_mm, M, v, bold)
     if v < M:
         print("POZOR: text se nevešel na stránku (přetéká o %.0f mm)" % ((M - v) / STEPS_PER_MM))
     if frame:
@@ -320,6 +388,8 @@ def main():
                     help="A4 na výšku jako z tiskárny: řádky podél krátké strany")
     ap.add_argument("-o", "--out", default="napis.hpgl")
     ap.add_argument("--bold", type=int, default=1)
+    ap.add_argument("--font", choices=("blok", "psane"), default="blok",
+                    help="písmo: blok (výchozí) nebo psane (jako psané rukou)")
     ap.add_argument("--frame", action="store_true")
     ap.add_argument("--star", action="store_true")
     ap.add_argument("--flip", action="store_true")
@@ -349,6 +419,8 @@ def main():
         elif found != pl:
             print("POZOR: Arduino má vybraný jiný plotter (%s), kreslím pro %s." % (found, pl))
     set_plotter(pl)
+    global FONT_STYLE
+    FONT_STYLE = a.font
 
     if a.file:
         with open(a.file, encoding="utf-8") as f:
