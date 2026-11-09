@@ -16,15 +16,18 @@ Pod grafem je tabulka po dnech se znaménky:
     py kondiciogram.py 12.5.1965 --jmeno "Zdeněk Kotrba" --send
     py kondiciogram.py 12.5.1965 --pera --send      každá křivka jiným perem (program počká na výměnu)
     py kondiciogram.py 12.5.1965 --plotter 4131 --send
-    py kondiciogram.py 12.5.1965 --ps "Text dodatku" --send   P.S. pod legendu
+    py kondiciogram.py 12.5.1965 --ps "Jiný dodatek" --send   jiný P.S. (výchozí je hláška o elektrónce E13)
+    py kondiciogram.py 12.5.1965 --bez-ps --send             bez P.S.
 
 Biorytmy jsou zábava z 80. let, ne věda – vědecky se nepotvrdily.
 """
 import argparse, calendar, datetime as dt, math, os, sys
 
-VERSION = "0.5.5"
+VERSION = "0.5.6"
 AREA = {"0507": (1520, 2140, 8), "4131": (1600, 2400, 10)}   # kroky od startu po HM, kroků/mm
 CYCLES = [("F", "fyzický", 23, "plná"), ("P", "psychický", 28, "čárkovaná"), ("I", "intelektuální", 33, "tečkovaná")]
+# dodatek tištěný na každý kondiciogram (změní --ps "…", vypne --bez-ps)
+PS_DEFAULT = "„Přéčinó byla chybná elektrónka E13 z našeho podniku Katóda Olomóc.“"
 MESICE = ["leden", "únor", "březen", "duben", "květen", "červen", "červenec", "srpen", "září", "říjen",
           "listopad", "prosinec"]
 DNY = ["po", "út", "st", "čt", "pá", "so", "ne"]
@@ -236,7 +239,8 @@ def main():
     ap.add_argument("narozeni", help="datum narození, např. 12.5.1965")
     ap.add_argument("mesic", nargs="?", default=None, help="měsíc a rok, např. 11/2026 (výchozí aktuální)")
     ap.add_argument("--jmeno", default="", help="jméno do záhlaví")
-    ap.add_argument("--ps", default="", help="dodatek P.S. pod legendou")
+    ap.add_argument("--ps", default=PS_DEFAULT, help="dodatek P.S. pod legendou (výchozí hláška o elektrónce E13)")
+    ap.add_argument("--bez-ps", action="store_true", help="nepsat dodatek P.S.")
     ap.add_argument("--plotter", choices=("0507", "4131"), default="0507")
     ap.add_argument("--pera", action="store_true", help="křivky různými pery – před každou se počká na výměnu")
     ap.add_argument("--send", action="store_true")
@@ -256,7 +260,7 @@ def main():
     if dt.date(year, month, 1) < birth.replace(day=1):
         sys.exit("Zvolený měsíc je před datem narození.")
     W, H, spm = AREA[a.plotter]
-    pg = build(birth, year, month, a.jmeno, today, W, H, spm, a.ps)
+    pg = build(birth, year, month, a.jmeno, today, W, H, spm, "" if a.bez_ps else a.ps)
     layers = ["text", "krivka_F", "krivka_P", "krivka_I"]
     all_strokes = to_steps(pg, layers)
     with open(a.out, "w") as f:
