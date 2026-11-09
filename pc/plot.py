@@ -34,7 +34,7 @@ import re
 import sys
 import time
 
-VERSION = "0.5.2"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
+VERSION = "0.5.4"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
 
 DEFAULT_PORT = "COM4"     # port Arduina s plotterem
 
@@ -209,6 +209,11 @@ def send_lines(port, lines, ver=None):
     retries_total = 0
     for n, line in enumerate(lines, 1):
         retry = 0
+        if line.startswith("#PAUSE"):          # pauza pro výměnu pera (kondiciogram.py --pera)
+            L("--", line)
+            print("\n\n  >>> " + line[6:].strip())
+            input("  >>> Až budeš hotov, stiskni Enter ... ")
+            continue
         ser.write((line + "\n").encode("ascii"))
         L("->", line)
         echo_n = None
