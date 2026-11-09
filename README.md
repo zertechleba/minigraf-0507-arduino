@@ -7,7 +7,7 @@ z počítače **Atari XE/XL** (přes SIO) i z **PC** (přes USB).
 
 ![Ukázka – nápis s rámečkem a hvězdou](docs/img/ukazka_napis.jpg)
 
-*Autor: Zdeněk Kotrba · © 2026 · verze 0.5.2 (firmware 0.5.1)*
+*Autor: Zdeněk Kotrba · © 2026 · verze 0.5.3 (firmware 0.5.1)*
 
 ---
 
@@ -41,8 +41,8 @@ Atari XE ──SIO──[3× optočlen]── Arduino ──7 signálů── Mi
 | `pc/sierpinski.py` | Sierpińského trojúhelník jedním tahem (`py sierpinski.py --send`) |
 | `pc/fraktaly.py` | deset fraktálů (Koch, Hilbert, drak, Gosper, rostlina …), většina jedním tahem (`py fraktaly.py --list`) |
 | `pc/hershey_script.py` | data psacího písma (`--font psane`), musí být ve stejné složce jako `text_plot.py` |
-| `docs/Minigraf_0507_XY4131_navod_v0.5.2.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
-| `docs/Minigraf_0507_XY4131_manual_v0.5.2_EN.pdf` | kompletní návod anglicky |
+| `docs/Minigraf_0507_XY4131_navod_v0.5.3.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
+| `docs/Minigraf_0507_XY4131_manual_v0.5.3_EN.pdf` | kompletní návod anglicky |
 | `docs/img/` | schémata zapojení (CZ i EN) a fotky výsledků |
 
 ## Hardware
@@ -149,10 +149,11 @@ Jednotka = 1 krok plotteru: Minigraf 0,125 mm, XY 4131 0,1 mm. Výchozí hodnoty
 *Kaňka v posledním řádku u „JKLM“ vznikla tím, že se na USB ztratil jeden příkaz a verze 0.3.4 čekala 20 s
 s perem dole, než ho poslala znovu. Od verze 0.3.5 firmware pero po 1 s sám zvedne a `plot.py` se zeptá už po 3 s.*
 
-Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_XY4131_navod_v0.5.2.pdf).
+Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_XY4131_navod_v0.5.3.pdf).
 
 ## Historie verzí
 
+- **0.5.3** (jen návody) – nová kapitola 13 „Doplňkové programy: fraktály“: ovládání `fraktaly.py` a `sierpinski.py`, tabulka fraktálů a všech voleb, tipy.
 - **0.5.2** (jen programy pro PC a návody) – během tisku uplynulý čas a odhad zbývajícího času, po tisku celkový tiskový čas (také v `plot_log.txt`); nový `fraktaly.py` s deseti fraktály. Firmware zůstává 0.5.1.
 
 ![Fraktály](docs/img/fraktaly_prehled.png)

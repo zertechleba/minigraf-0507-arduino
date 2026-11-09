@@ -7,7 +7,7 @@ plot from an **Atari XE/XL** computer (via SIO) and from a **PC** (via USB).
 
 ![Example – lettering with frame and star](docs/img/ukazka_napis.jpg)
 
-*Author: Zdeněk Kotrba · © 2026 · version 0.5.2 (firmware 0.5.1)*
+*Author: Zdeněk Kotrba · © 2026 · version 0.5.3 (firmware 0.5.1)*
 
 ---
 
@@ -41,8 +41,8 @@ Atari XE ──SIO──[3× optocoupler]── Arduino ──7 signals── Mi
 | `pc/sierpinski.py` | Sierpiński triangle in one stroke (`py sierpinski.py --send`) |
 | `pc/fraktaly.py` | ten fractals (Koch, Hilbert, dragon, Gosper, plant …), most in one stroke (`py fraktaly.py --list`) |
 | `pc/hershey_script.py` | script font data (`--font psane`), must be in the same folder as `text_plot.py` |
-| `docs/Minigraf_0507_XY4131_manual_v0.5.2_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
-| `docs/Minigraf_0507_XY4131_navod_v0.5.2.pdf` | full manual in Czech |
+| `docs/Minigraf_0507_XY4131_manual_v0.5.3_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
+| `docs/Minigraf_0507_XY4131_navod_v0.5.3.pdf` | full manual in Czech |
 | `docs/img/` | schematics (EN and CZ) and photos of results |
 
 ## Hardware
@@ -149,11 +149,12 @@ Unit = 1 plotter step: Minigraf 0.125 mm, XY 4131 0.1 mm. Each plotter has its o
 *The ink blot in the last line near "JKLM" appeared because one command was lost on USB and version 0.3.4 waited
 20 s with the pen down before resending it. From version 0.3.5 the firmware lifts the pen after 1 s and `plot.py` queries after 3 s.*
 
-See the [PDF manual](docs/Minigraf_0507_XY4131_manual_v0.5.2_EN.pdf) for details.
+See the [PDF manual](docs/Minigraf_0507_XY4131_manual_v0.5.3_EN.pdf) for details.
 Note: the firmware and the PC programs print their status messages in Czech.
 
 ## Version history
 
+- **0.5.3** (manuals only) – new chapter 13 "Additional programs: fractals": how to use `fraktaly.py` and `sierpinski.py`, table of fractals and all options, tips.
 - **0.5.2** (PC programs and manuals only) – elapsed and estimated remaining time during plotting, total plotting time at the end (also in `plot_log.txt`); new `fraktaly.py` with ten fractals. Firmware stays 0.5.1.
 
 ![Fractals](docs/img/fraktaly_prehled.png)
