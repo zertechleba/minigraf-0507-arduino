@@ -34,7 +34,7 @@ import re
 import sys
 import time
 
-VERSION = "0.5.8"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
+VERSION = "0.5.9"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
 
 DEFAULT_PORT = "COM4"     # port Arduina s plotterem
 
@@ -279,15 +279,21 @@ def send_lines(port, lines, ver=None):
                                                     line[:30].ljust(30)), end="", flush=True)
     if retries_total:
         print("\nVýpadky komunikace: %d (podrobnosti v %s)" % (retries_total, LOG_FILE), end="")
-    ser.write(b"AL0;\n")                  # konec tisku: ruční příkazy z monitoru pero nezvedají
-    L("->", "AL0;")
-    end = time.time() + 2
-    while time.time() < end:
-        r = ser.readline().decode("ascii", errors="ignore").strip()
-        if r:
-            L("<-", r)
-        if r == "hotovo":
-            break
+    # konec tisku: pero nahoru, hlava zpět na doraz a start (HM) – jen když se kreslilo s HM;
+    # pak AL0 = ruční příkazy z monitoru pero nezvedají
+    tail = ["PU;", "HM;", "AL0;"] if "HM;" in lines else ["PU;", "AL0;"]
+    if "HM;" in lines:
+        print("\nHlava se vrací na doraz a start (HM) ...", end="", flush=True)
+    for cmd in tail:
+        ser.write((cmd + "\n").encode("ascii"))
+        L("->", cmd)
+        end = time.time() + 30
+        while time.time() < end:
+            r = ser.readline().decode("ascii", errors="ignore").strip()
+            if r:
+                L("<-", r)
+            if r == "hotovo":
+                break
     ser.close()
     total = time.time() - t0
     L("--", "tisk dokoncen za %s, %d radku" % (hms(total), len(lines)))

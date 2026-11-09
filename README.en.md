@@ -7,7 +7,7 @@ plot from an **Atari XE/XL** computer (via SIO) and from a **PC** (via USB).
 
 ![Example – lettering with frame and star](docs/img/ukazka_napis.jpg)
 
-*Author: Zdeněk Kotrba · © 2026 · version 0.5.8 (firmware 0.5.2)*
+*Author: Zdeněk Kotrba · © 2026 · version 0.5.9 (firmware 0.5.2)*
 
 ---
 
@@ -42,8 +42,8 @@ Atari XE ──SIO──[3× optocoupler]── Arduino ──7 signals── Mi
 | `pc/fraktaly.py` | ten fractals (Koch, Hilbert, dragon, Gosper, plant …), most in one stroke (`py fraktaly.py --list`) |
 | `pc/kondiciogram.py` | biorhythm chart (kondiciogram) for a chosen month (`py kondiciogram.py 12.5.1965 11/2026 --send`) |
 | `pc/hershey_script.py` | script font data (`--font psane`), must be in the same folder as `text_plot.py` |
-| `docs/Minigraf_0507_XY4131_manual_v0.5.8_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
-| `docs/Minigraf_0507_XY4131_navod_v0.5.8.pdf` | full manual in Czech |
+| `docs/Minigraf_0507_XY4131_manual_v0.5.9_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
+| `docs/Minigraf_0507_XY4131_navod_v0.5.9.pdf` | full manual in Czech |
 | `docs/img/` | schematics (EN and CZ) and photos of results |
 
 ## Hardware
@@ -151,11 +151,12 @@ Unit = 1 plotter step: Minigraf 0.125 mm, XY 4131 0.1 mm. Each plotter has its o
 *The ink blot in the last line near "JKLM" appeared because one command was lost on USB and version 0.3.4 waited
 20 s with the pen down before resending it. From version 0.3.5 the firmware lifts the pen after 1 s and `plot.py` queries after 3 s.*
 
-See the [PDF manual](docs/Minigraf_0507_XY4131_manual_v0.5.8_EN.pdf) for details.
+See the [PDF manual](docs/Minigraf_0507_XY4131_manual_v0.5.9_EN.pdf) for details.
 Note: the firmware and the PC programs print their status messages in Czech.
 
 ## Version history
 
+- **0.5.9** (PC programs and manuals) – after printing the head returns to the stop and start position (`PU;HM;`) in all programs (plot.py, text_plot.py, kondiciogram.py, fraktaly.py, sierpinski.py); with `--nohome` it only lifts the pen.
 - **0.5.8** (firmware 0.5.2) – automatic pen lift after 1 s **only while printing**: plot.py sends `AL1;` at the start and `AL0;` at the end, printing from the Atari always has it; manual commands from the Serial Monitor leave the pen down. The pen is lifted even while an incomplete line is pending (this used to block the lift and could leave a blot).
 - **0.5.7** (PC programs and manuals) – the biorhythm chart has a default birth date of 18.2.1975 (`NAROZENI_DEFAULT`), so `py kondiciogram.py --send` or `py kondiciogram.py 12/2026 --send` is enough; birth date and month can be given in any order.
 - **0.5.6** (PC programs and manuals) – the biorhythm chart always carries the P.S. note about the faulty E13 valve; other text with `--ps "…"`, none with `--bez-ps`.
