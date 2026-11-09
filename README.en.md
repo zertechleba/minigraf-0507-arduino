@@ -7,7 +7,7 @@ plot from an **Atari XE/XL** computer (via SIO) and from a **PC** (via USB).
 
 ![Example – lettering with frame and star](docs/img/ukazka_napis.jpg)
 
-*Author: Zdeněk Kotrba · © 2026 · version 0.5.6 (firmware 0.5.1)*
+*Author: Zdeněk Kotrba · © 2026 · version 0.5.7 (firmware 0.5.1)*
 
 ---
 
@@ -42,8 +42,8 @@ Atari XE ──SIO──[3× optocoupler]── Arduino ──7 signals── Mi
 | `pc/fraktaly.py` | ten fractals (Koch, Hilbert, dragon, Gosper, plant …), most in one stroke (`py fraktaly.py --list`) |
 | `pc/kondiciogram.py` | biorhythm chart (kondiciogram) for a chosen month (`py kondiciogram.py 12.5.1965 11/2026 --send`) |
 | `pc/hershey_script.py` | script font data (`--font psane`), must be in the same folder as `text_plot.py` |
-| `docs/Minigraf_0507_XY4131_manual_v0.5.6_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
-| `docs/Minigraf_0507_XY4131_navod_v0.5.6.pdf` | full manual in Czech |
+| `docs/Minigraf_0507_XY4131_manual_v0.5.7_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
+| `docs/Minigraf_0507_XY4131_navod_v0.5.7.pdf` | full manual in Czech |
 | `docs/img/` | schematics (EN and CZ) and photos of results |
 
 ## Hardware
@@ -150,11 +150,12 @@ Unit = 1 plotter step: Minigraf 0.125 mm, XY 4131 0.1 mm. Each plotter has its o
 *The ink blot in the last line near "JKLM" appeared because one command was lost on USB and version 0.3.4 waited
 20 s with the pen down before resending it. From version 0.3.5 the firmware lifts the pen after 1 s and `plot.py` queries after 3 s.*
 
-See the [PDF manual](docs/Minigraf_0507_XY4131_manual_v0.5.6_EN.pdf) for details.
+See the [PDF manual](docs/Minigraf_0507_XY4131_manual_v0.5.7_EN.pdf) for details.
 Note: the firmware and the PC programs print their status messages in Czech.
 
 ## Version history
 
+- **0.5.7** (PC programs and manuals) – the biorhythm chart has a default birth date of 18.2.1975 (`NAROZENI_DEFAULT`), so `py kondiciogram.py --send` or `py kondiciogram.py 12/2026 --send` is enough; birth date and month can be given in any order.
 - **0.5.6** (PC programs and manuals) – the biorhythm chart always carries the P.S. note about the faulty E13 valve; other text with `--ps "…"`, none with `--bez-ps`.
 - **0.5.5** (PC programs and manuals) – `kondiciogram.py --ps "…"` adds a P.S. note below the legend; Czech quotation marks „ “ added to the block font.
 - **0.5.4** (PC programs and manuals) – new **`kondiciogram.py`**: F/P/I biorhythms (23/28/33 days) for a chosen month, chart plus a table of `+` `-` `*` signs, `--pera` option to draw each curve with a different pen (plot.py waits for the pen change); `*` added to the block font. Manuals: chapter 13.4. Firmware stays 0.5.1.

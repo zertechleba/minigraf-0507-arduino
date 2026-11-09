@@ -11,7 +11,9 @@ Pod grafem je tabulka po dnech se znaménky:
     -  záporná fáze (křivka pod osou)
     *  kritický den (křivka protíná osu – den nejistoty)
 
-    py kondiciogram.py 12.5.1965                    aktuální měsíc -> kondiciogram.hpgl + .png
+    py kondiciogram.py                              výchozí narození (NAROZENI_DEFAULT), aktuální měsíc
+    py kondiciogram.py 12/2026 --send               výchozí narození, zvolený měsíc
+    py kondiciogram.py 12.5.1965                    jiné datum narození, aktuální měsíc -> kondiciogram.hpgl + .png
     py kondiciogram.py 12.5.1965 11/2026 --send     zvolený měsíc a rovnou nakreslit
     py kondiciogram.py 12.5.1965 --jmeno "Zdeněk Kotrba" --send
     py kondiciogram.py 12.5.1965 --pera --send      každá křivka jiným perem (program počká na výměnu)
@@ -23,9 +25,11 @@ Biorytmy jsou zábava z 80. let, ne věda – vědecky se nepotvrdily.
 """
 import argparse, calendar, datetime as dt, math, os, sys
 
-VERSION = "0.5.6"
+VERSION = "0.5.7"
 AREA = {"0507": (1520, 2140, 8), "4131": (1600, 2400, 10)}   # kroky od startu po HM, kroků/mm
 CYCLES = [("F", "fyzický", 23, "plná"), ("P", "psychický", 28, "čárkovaná"), ("I", "intelektuální", 33, "tečkovaná")]
+# výchozí datum narození – když se v příkazu žádné nezadá
+NAROZENI_DEFAULT = "18.2.1975"
 # dodatek tištěný na každý kondiciogram (změní --ps "…", vypne --bez-ps)
 PS_DEFAULT = "„Přéčinó byla chybná elektrónka E13 z našeho podniku Katóda Olomóc.“"
 MESICE = ["leden", "únor", "březen", "duben", "květen", "červen", "červenec", "srpen", "září", "říjen",
@@ -236,8 +240,8 @@ def hpgl(strokes, init=True):
 
 def main():
     ap = argparse.ArgumentParser(description="Kondiciogram – biorytmy na plotter (kondiciogram.py %s)" % VERSION)
-    ap.add_argument("narozeni", help="datum narození, např. 12.5.1965")
-    ap.add_argument("mesic", nargs="?", default=None, help="měsíc a rok, např. 11/2026 (výchozí aktuální)")
+    ap.add_argument("datum", nargs="*", help="datum narození (např. 12.5.1965, výchozí %s) a/nebo měsíc "
+                    "a rok (např. 11/2026, výchozí aktuální) – v libovolném pořadí" % NAROZENI_DEFAULT)
     ap.add_argument("--jmeno", default="", help="jméno do záhlaví")
     ap.add_argument("--ps", default=PS_DEFAULT, help="dodatek P.S. pod legendou (výchozí hláška o elektrónce E13)")
     ap.add_argument("--bez-ps", action="store_true", help="nepsat dodatek P.S.")
@@ -252,9 +256,18 @@ def main():
 
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     today = dt.date.today()
+    birth_s, month_s = NAROZENI_DEFAULT, None
+    for arg in a.datum:                    # 3 části = datum narození, 2 části = měsíc/rok
+        parts = arg.replace("/", ".").replace("-", ".").split(".")
+        if len(parts) == 3:
+            birth_s = arg
+        elif len(parts) == 2:
+            month_s = arg
+        else:
+            sys.exit("Nerozumím '%s'. Příklad: py kondiciogram.py 12.5.1965 11/2026" % arg)
     try:
-        birth = parse_date(a.narozeni)
-        year, month = parse_month(a.mesic) if a.mesic else (today.year, today.month)
+        birth = parse_date(birth_s)
+        year, month = parse_month(month_s) if month_s else (today.year, today.month)
     except (ValueError, TypeError):
         sys.exit("Špatné datum. Příklad: py kondiciogram.py 12.5.1965 11/2026")
     if dt.date(year, month, 1) < birth.replace(day=1):

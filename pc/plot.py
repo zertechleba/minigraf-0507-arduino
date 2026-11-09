@@ -34,7 +34,7 @@ import re
 import sys
 import time
 
-VERSION = "0.5.6"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
+VERSION = "0.5.7"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
 
 DEFAULT_PORT = "COM4"     # port Arduina s plotterem
 
