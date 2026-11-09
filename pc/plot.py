@@ -34,7 +34,7 @@ import re
 import sys
 import time
 
-VERSION = "0.5.9"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
+VERSION = "0.5.10"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
 
 DEFAULT_PORT = "COM4"     # port Arduina s plotterem
 
@@ -208,6 +208,7 @@ def send_lines(port, lines, ver=None):
                      "Nahraj do Arduina aktuální minigraf_sio.ino, nebo kresli s volbou --nohome." % (ver or "neznámá"))
     t0 = time.time()
     retries_total = 0
+    start_xy = None
     for n, line in enumerate(lines, 1):
         retry = 0
         if line.startswith("#PAUSE"):          # pauza pro výměnu pera (kondiciogram.py --pera)
@@ -234,6 +235,9 @@ def send_lines(port, lines, ver=None):
                 print("\n  Arduino: " + reply)       # neočekávaná hláška (např. zahozený neúplný příkaz)
             if reply.startswith("HM:"):
                 saw_hm = True
+                m = re.search(r"ted X=(-?\d+) Y=(-?\d+)", reply)
+                if m and start_xy is None:
+                    start_xy = (int(m.group(1)), int(m.group(2)))   # start po HM (= počátek IN)
                 print("\r  " + reply)
             if reply == "hotovo":
                 if line == "HM;" and not saw_hm:
@@ -279,15 +283,20 @@ def send_lines(port, lines, ver=None):
                                                     line[:30].ljust(30)), end="", flush=True)
     if retries_total:
         print("\nVýpadky komunikace: %d (podrobnosti v %s)" % (retries_total, LOG_FILE), end="")
-    # konec tisku: pero nahoru, hlava zpět na doraz a start (HM) – jen když se kreslilo s HM;
+    # konec tisku: pero nahoru, papír i hlava zpět na začátek (HM) – jen když se kreslilo s HM;
     # pak AL0 = ruční příkazy z monitoru pero nezvedají
-    tail = ["PU;", "HM;", "AL0;"] if "HM;" in lines else ["PU;", "AL0;"]
+    # Papír i vozík nejdřív zpět do polohy, kde byly při prvním HM (absolutně 0,0 = počátek IN minus start),
+    # takže po HM je papír přesně tam, kde se začínalo.
     if "HM;" in lines:
-        print("\nHlava se vrací na doraz a start (HM) ...", end="", flush=True)
+        back = "PU%d,%d;" % (-start_xy[0], -start_xy[1]) if start_xy else "PU0,0;"
+        tail = ["PU;", back, "HM;", "AL0;"]
+        print("\nPapír a hlava se vracejí na začátek (HM) ...", end="", flush=True)
+    else:
+        tail = ["PU;", "AL0;"]
     for cmd in tail:
         ser.write((cmd + "\n").encode("ascii"))
         L("->", cmd)
-        end = time.time() + 30
+        end = time.time() + 120               # couvání papíru přes celou stránku chvíli trvá
         while time.time() < end:
             r = ser.readline().decode("ascii", errors="ignore").strip()
             if r:

@@ -7,7 +7,7 @@ z počítače **Atari XE/XL** (přes SIO) i z **PC** (přes USB).
 
 ![Ukázka – nápis s rámečkem a hvězdou](docs/img/ukazka_napis.jpg)
 
-*Autor: Zdeněk Kotrba · © 2026 · verze 0.5.9 (firmware 0.5.2)*
+*Autor: Zdeněk Kotrba · © 2026 · verze 0.5.10 (firmware 0.5.2)*
 
 ---
 
@@ -42,8 +42,8 @@ Atari XE ──SIO──[3× optočlen]── Arduino ──7 signálů── Mi
 | `pc/fraktaly.py` | deset fraktálů (Koch, Hilbert, drak, Gosper, rostlina …), většina jedním tahem (`py fraktaly.py --list`) |
 | `pc/kondiciogram.py` | kondiciogram – biorytmy na zvolený měsíc (`py kondiciogram.py 12.5.1965 11/2026 --send`) |
 | `pc/hershey_script.py` | data psacího písma (`--font psane`), musí být ve stejné složce jako `text_plot.py` |
-| `docs/Minigraf_0507_XY4131_navod_v0.5.9.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
-| `docs/Minigraf_0507_XY4131_manual_v0.5.9_EN.pdf` | kompletní návod anglicky |
+| `docs/Minigraf_0507_XY4131_navod_v0.5.10.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
+| `docs/Minigraf_0507_XY4131_manual_v0.5.10_EN.pdf` | kompletní návod anglicky |
 | `docs/img/` | schémata zapojení (CZ i EN) a fotky výsledků |
 
 ## Hardware
@@ -151,10 +151,11 @@ Jednotka = 1 krok plotteru: Minigraf 0,125 mm, XY 4131 0,1 mm. Výchozí hodnoty
 *Kaňka v posledním řádku u „JKLM“ vznikla tím, že se na USB ztratil jeden příkaz a verze 0.3.4 čekala 20 s
 s perem dole, než ho poslala znovu. Od verze 0.3.5 firmware pero po 1 s sám zvedne a `plot.py` se zeptá už po 3 s.*
 
-Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_XY4131_navod_v0.5.9.pdf).
+Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_XY4131_navod_v0.5.10.pdf).
 
 ## Historie verzí
 
+- **0.5.10** (programy pro PC a návody) – po tisku se vrátí i **papír**: hlava a papír nejdřív couvnou do polohy prvního HM, pak `HM;` – vše je přesně jako před tiskem.
 - **0.5.9** (programy pro PC a návody) – po dokončení tisku se hlava sama vrátí na doraz a start (`PU;HM;`), u všech programů (plot.py, text_plot.py, kondiciogram.py, fraktaly.py, sierpinski.py); s `--nohome` jen zvedne pero.
 - **0.5.8** (firmware 0.5.2) – samozvednutí pera po 1 s **jen při tisku**: plot.py posílá na začátku `AL1;` a na konci `AL0;`, tisk z Atari ho má vždy; ruční příkazy ze Sériového monitoru pero nechají dole. Pero se zvedne i když visí neúplný řádek (dřív to blokovalo zvednutí a mohla vzniknout kaňka).
 - **0.5.7** (programy pro PC a návody) – kondiciogram má výchozí datum narození 18.2.1975 (`NAROZENI_DEFAULT`), stačí `py kondiciogram.py --send` nebo `py kondiciogram.py 12/2026 --send`; datum narození a měsíc lze zadat v libovolném pořadí.
