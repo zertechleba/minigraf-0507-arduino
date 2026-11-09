@@ -16,12 +16,13 @@ Pod grafem je tabulka po dnech se znaménky:
     py kondiciogram.py 12.5.1965 --jmeno "Zdeněk Kotrba" --send
     py kondiciogram.py 12.5.1965 --pera --send      každá křivka jiným perem (program počká na výměnu)
     py kondiciogram.py 12.5.1965 --plotter 4131 --send
+    py kondiciogram.py 12.5.1965 --ps "Text dodatku" --send   P.S. pod legendu
 
 Biorytmy jsou zábava z 80. let, ne věda – vědecky se nepotvrdily.
 """
 import argparse, calendar, datetime as dt, math, os, sys
 
-VERSION = "0.5.4"
+VERSION = "0.5.5"
 AREA = {"0507": (1520, 2140, 8), "4131": (1600, 2400, 10)}   # kroky od startu po HM, kroků/mm
 CYCLES = [("F", "fyzický", 23, "plná"), ("P", "psychický", 28, "čárkovaná"), ("I", "intelektuální", 33, "tečkovaná")]
 MESICE = ["leden", "únor", "březen", "duben", "květen", "červen", "červenec", "srpen", "září", "říjen",
@@ -102,7 +103,7 @@ class Page:
             self.line([(x + u * k, y + v * k) for u, v in p], layer)
 
 
-def build(birth, year, month, name, today, W, H, spm):
+def build(birth, year, month, name, today, W, H, spm, ps=""):
     pg = Page(W, H, spm)
     sc = min(pg.W / 190.0, pg.H / 267.5)       # rozvržení je pro Minigraf, XY 4131 se zmenší
     S = lambda v: v * sc
@@ -196,6 +197,13 @@ def build(birth, year, month, name, today, W, H, spm):
     pg.text("+ kladná fáze    - záporná fáze    * kritický den", gx0, y, S(3))
     pg.text("Kladná fáze: dny plné síly. Záporná: odpočinek, regenerace.", gx0, y - S(6), S(2.5))
     pg.text("Kritický den: přechod přes nulu, den nejistoty a opatrnosti.", gx0, y - S(10.5), S(2.5))
+    if ps:                                                        # P.S. pod legendu, zalomené na šířku stránky
+        import text_plot as t
+        t.FONT_STYLE = "blok"
+        size = S(3)
+        lines = t.wrap("P.S. " + ps, (gx1 - gx0) / (size / 6.0))
+        for i, ln in enumerate(lines):
+            pg.text(ln, gx0, y - S(20) - i * S(5.5), size)
     pg.text("Vytištěno %d. %d. %d na plotteru, kondiciogram.py %s" % (today.day, today.month, today.year, VERSION),
             pg.W / 2, S(3), S(2), "center")
     return pg
@@ -228,6 +236,7 @@ def main():
     ap.add_argument("narozeni", help="datum narození, např. 12.5.1965")
     ap.add_argument("mesic", nargs="?", default=None, help="měsíc a rok, např. 11/2026 (výchozí aktuální)")
     ap.add_argument("--jmeno", default="", help="jméno do záhlaví")
+    ap.add_argument("--ps", default="", help="dodatek P.S. pod legendou")
     ap.add_argument("--plotter", choices=("0507", "4131"), default="0507")
     ap.add_argument("--pera", action="store_true", help="křivky různými pery – před každou se počká na výměnu")
     ap.add_argument("--send", action="store_true")
@@ -247,7 +256,7 @@ def main():
     if dt.date(year, month, 1) < birth.replace(day=1):
         sys.exit("Zvolený měsíc je před datem narození.")
     W, H, spm = AREA[a.plotter]
-    pg = build(birth, year, month, a.jmeno, today, W, H, spm)
+    pg = build(birth, year, month, a.jmeno, today, W, H, spm, a.ps)
     layers = ["text", "krivka_F", "krivka_P", "krivka_I"]
     all_strokes = to_steps(pg, layers)
     with open(a.out, "w") as f:

@@ -50,7 +50,7 @@ import argparse
 import math
 import unicodedata
 
-VERSION = "0.5.4"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
+VERSION = "0.5.5"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
 
 # kreslicí plocha v krocích od startovní pozice a kroků na mm podle plotteru
 PLOTTERS = {
@@ -112,6 +112,8 @@ FONT = {
     '/': [[(0, 0), (4, 6)]],
     '+': [[(2, 1), (2, 5)], [(0, 3), (4, 3)]],
     '*': [[(2, 1), (2, 5)], [(0.3, 2), (3.7, 4)], [(0.3, 4), (3.7, 2)]],
+    '„': [[(1.4, 0.4), (1.4, 0), (0.9, -0.8)], [(2.8, 0.4), (2.8, 0), (2.3, -0.8)]],   # české uvozovky dole
+    '“': [[(1.6, 5.2), (1.1, 6)], [(3, 5.2), (2.5, 6)]],                               # české uvozovky nahoře
     '=': [[(0, 2), (4, 2)], [(0, 4), (4, 4)]],
     '(': [[(3, 6), (2, 5), (2, 1), (3, 0)]],
     ')': [[(1, 6), (2, 5), (2, 1), (1, 0)]],
