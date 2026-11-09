@@ -1,5 +1,5 @@
 /*
- * Atari XE (SIO) -> Aritma Minigraf A 0507 / Aritma XY 4131      firmware verze 0.5.1
+ * Atari XE (SIO) -> Aritma Minigraf A 0507 / Aritma XY 4131      firmware verze 0.5.2
  * -----------------------------------------------------------
  * Arduino se na SIO sběrnici tváří jako tiskárna P1: (ID $40).
  * Z Atari se kreslí obyčejným LPRINT příkazy ve zjednodušeném HPGL:
@@ -18,6 +18,8 @@
  *   (pero dole a 1 s žádný příkaz -> firmware ho sám zvedne, aby nevznikla kaňka)
  *   DG0; / DG1;      šikmé čáry plnou rychlostí / zpomalené ×1,4 (DG; = výchozí)
  *   PL0507; / PL4131; výběr plotteru (uloží se do EEPROM), PL; = vypsat. Lze i PL0; / PL1;
+ *   AL1; / AL0;      samozvednutí pera při tisku zapnout / vypnout (plot.py posílá AL1 na začátku a AL0
+ *                    na konci). Při tisku z Atari platí vždy. Ruční příkazy z monitoru pero nezvedají.
  *   SI n;            výška písma v mm (výška velkých písmen), výchozí 6
  *   FN0; / FN1;      písmo blokové / psané (jako psané rukou)
  *   DI0; / DI1;      text podél osy X / otočený o 90° (podél osy Y)
@@ -61,7 +63,7 @@
 #include <math.h>
 #include <EEPROM.h>
 
-#define FW_VERSION "0.5.1"
+#define FW_VERSION "0.5.2"
 
 // ================= Nastavení =================
 const uint8_t  PIN_CMD        = 2;      // SIO Command přes optočlen (LOW = aktivní)
@@ -87,7 +89,7 @@ const unsigned HOME_US        = 2500;   // HM: rychlost jízdy k dorazu (~50 mm/
 const unsigned MIN_STEP_US    = 1500;   // nejrychlejší povolené (VS nepustí rychleji)
 const unsigned PEN_DOWN_MS    = 30;     // čekání po položení pera (ověřeno: 30)
 const unsigned PEN_UP_MS      = 70;     // čekání po zvednutí pera (ověřeno: 70)
-const unsigned PEN_IDLE_MS    = 1000;   // pero dole a žádný příkaz tak dlouho -> zvednout (žádné kaňky při výpadku)
+const unsigned PEN_IDLE_MS    = 1000;   // při tisku: pero dole a žádný příkaz tak dlouho -> zvednout (žádné kaňky při výpadku)
 const uint8_t  PRN_TIMEOUT_S  = 255;    // max. doba čekání Atari na 'C' (jednotka ~1 s, 255 = max.)
 
 // ---- XY 4131 (ověřeno testovacím programem xy4131_test 0.9) ----
@@ -120,6 +122,8 @@ static unsigned stepUs = STEP_US;                         // rychlost (VS)
 static unsigned startUs = START_US, rampUs = RAMP_US;     // zrychlení (AC)
 static bool     diagSlow = DIAG_SLOW;                     // šikmé čáry (DG)
 static unsigned penDownMs = PEN_DOWN_MS, penUpMs = PEN_UP_MS; // prodleva pera (PT)
+static bool autoLiftUsb = false;         // AL1 z plot.py: tisk z PC -> samozvednutí pera
+static bool lastFromSio = false;         // poslední příkaz přišel z Atari (tisk) -> samozvednutí pera
 static unsigned long lastCmdDone = 0;   // kdy skončil poslední příkaz (USB i SIO) – pro automatické zvednutí pera
 static uint8_t phX = 0, phY = 0;
 static int     posX = 0, posY = 0;      // ABSOLUTNÍ poloha v krocích (od dorazu po HM, jinak od zapnutí)
@@ -651,6 +655,7 @@ static void execCmd(char c1, char c2, const long *v, uint8_t n) {
     Serial.print(F(" ms, nahoru ")); Serial.print(penUpMs); Serial.println(F(" ms"));
   }
   else if (c1 == 'C' && c2 == 'I') { if (n >= 1) circle(v[0], n >= 2 ? v[1] : 72); }
+  else if (c1 == 'A' && c2 == 'L') { autoLiftUsb = (n >= 1 && v[0] != 0); }
   else if (c1 == 'S' && c2 == 'I') { txtSizeMm = n >= 1 ? constrain(v[0], 1, 150) : 6; }
   else if (c1 == 'F' && c2 == 'N') { fontSel = (n >= 1 && v[0] == 1) ? 1 : 0; }
   else if (c1 == 'D' && c2 == 'I') { txtDir = (n >= 1 && v[0] == 1) ? 1 : 0; }
@@ -771,6 +776,7 @@ static void handleWrite(uint8_t aux1) {
   delayMicroseconds(850);
   sioSend('A');
 
+  lastFromSio = true;
   feedPrinterData(buf, len);               // kreslí se TEĎ -> Atari čeká = řízení toku
   lastCmdDone = millis();
   delayMicroseconds(300);
@@ -800,7 +806,8 @@ static void printStatus() {
   Serial.print(F(" | DG")); Serial.print(diagSlow ? 1 : 0);
   Serial.print(F(" | PT ")); Serial.print(penDownMs); Serial.print(','); Serial.print(penUpMs);
   Serial.print(F(" | SI ")); Serial.print(txtSizeMm); Serial.print(F(" FN")); Serial.print(fontSel);
-  Serial.print(F(" DI")); Serial.println(txtDir);
+  Serial.print(F(" DI")); Serial.print(txtDir);
+  Serial.print(F(" | AL")); Serial.println((autoLiftUsb || lastFromSio) ? 1 : 0);
 }
 
 static void idleTasks() {
@@ -815,8 +822,10 @@ static void idleTasks() {
     lastBeat = now;
     printStatus();
   }
-  if (penIsDown && now - lastCmdDone > PEN_IDLE_MS && usbLen == 0) {
-    pen(false);                            // dlouho žádný příkaz s perem dole -> zvednout (výpadek, pauza)
+  // při tisku (plot.py s AL1 nebo Atari): 1 s žádný příkaz s perem dole -> zvednout (výpadek = žádná kaňka).
+  // Platí i když visí neúplný řádek. Ruční příkazy ze Sériového monitoru pero nechají dole.
+  if (penIsDown && (autoLiftUsb || lastFromSio) && now - lastCmdDone > PEN_IDLE_MS) {
+    pen(false);
     Serial.println(F("pero zvednuto (zadny prikaz)"));
   }
   if (usbLen && now - lastUsbChar > 1000) { // neúplný příkaz (ztracený konec řádku) -> zahodit
@@ -834,6 +843,7 @@ static void idleTasks() {
       else {
         usbLines++;
         Serial.print(F("> #")); Serial.print(usbLines); Serial.print(' '); Serial.println(usbBuf);
+        lastFromSio = false;
         digitalWrite(LED_BUILTIN, HIGH);
         parseLine(usbBuf);
         lastCmdDone = millis();

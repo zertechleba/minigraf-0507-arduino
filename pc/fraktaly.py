@@ -14,7 +14,7 @@ co největší, a vycentruje. Program upozorní, když jsou úsečky kratší ne
 """
 import argparse, math, os, sys
 
-VERSION = "0.5.7"
+VERSION = "0.5.8"
 AREA = {"0507": (1520, 2140, 8), "4131": (1600, 2400, 10)}   # kroky od startu po HM, kroků/mm
 
 # název: (popis, axiom, pravidla, úhel, kreslicí písmena, výchozí řád, počáteční směr)

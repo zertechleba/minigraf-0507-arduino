@@ -34,7 +34,7 @@ import re
 import sys
 import time
 
-VERSION = "0.5.7"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
+VERSION = "0.5.8"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
 
 DEFAULT_PORT = "COM4"     # port Arduina s plotterem
 
@@ -82,7 +82,8 @@ def to_lines(text, scale):
 def setup_lines(speed=0, pen="", accel="", diag=None, home=True):
     """Nastavovací příkazy na začátek výkresu (prázdné = výchozí hodnoty firmwaru).
     home=True: hlava nejdřív najede na levý doraz a startovní pozici (HM)."""
-    out = ["VS%d;" % speed if speed > 0 else "VS;", "PT%s;" % pen, "AC%s;" % accel]
+    out = ["AL1;",                         # tisk: firmware 0.5.2+ zvedne pero, když 1 s nepřijde příkaz (výpadek)
+           "VS%d;" % speed if speed > 0 else "VS;", "PT%s;" % pen, "AC%s;" % accel]
     out.append("DG;" if diag is None else "DG%d;" % diag)
     if home:
         out.append("HM;")
@@ -278,6 +279,15 @@ def send_lines(port, lines, ver=None):
                                                     line[:30].ljust(30)), end="", flush=True)
     if retries_total:
         print("\nVýpadky komunikace: %d (podrobnosti v %s)" % (retries_total, LOG_FILE), end="")
+    ser.write(b"AL0;\n")                  # konec tisku: ruční příkazy z monitoru pero nezvedají
+    L("->", "AL0;")
+    end = time.time() + 2
+    while time.time() < end:
+        r = ser.readline().decode("ascii", errors="ignore").strip()
+        if r:
+            L("<-", r)
+        if r == "hotovo":
+            break
     ser.close()
     total = time.time() - t0
     L("--", "tisk dokoncen za %s, %d radku" % (hms(total), len(lines)))
