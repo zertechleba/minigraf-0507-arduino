@@ -34,7 +34,7 @@ import re
 import sys
 import time
 
-VERSION = "0.5.1"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
+VERSION = "0.5.2"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
 
 DEFAULT_PORT = "COM4"     # port Arduina s plotterem
 
@@ -144,6 +144,22 @@ def select_plotter(ser, pl):
     return found
 
 
+def hms(sec):
+    """Čas jako 1 h 05 min 07 s / 12 min 34 s / 45 s."""
+    sec = int(round(sec))
+    h, m, s_ = sec // 3600, sec % 3600 // 60, sec % 60
+    if h:
+        return "%d h %02d min %02d s" % (h, m, s_)
+    if m:
+        return "%d min %02d s" % (m, s_)
+    return "%d s" % s_
+
+
+def clock(sec):
+    sec = int(round(sec))
+    return "%d:%02d:%02d" % (sec // 3600, sec % 3600 // 60, sec % 60) if sec >= 3600 else "%d:%02d" % (sec // 60, sec % 60)
+
+
 LOG_FILE = "plot_log.txt"   # záznam komunikace (přepíše se při každém kreslení)
 
 
@@ -251,14 +267,18 @@ def send_lines(port, lines, ver=None):
             if time.time() > deadline:
                 sys.exit("\nArduino neodpovídá ani na dotaz (řádek %d/%d: %s).\n"
                          "Zkontroluj LED na Arduinu a zkus reset." % (n, len(lines), line))
-        print("\r%d/%d  %3d %%  %s" % (n, len(lines), n * 100 // len(lines), line[:40].ljust(40)),
-              end="", flush=True)
+        el = time.time() - t0
+        eta = el / n * (len(lines) - n)
+        print("\r%d/%d  %3d %%  %s / zbývá ~%s  %s" % (n, len(lines), n * 100 // len(lines), clock(el), clock(eta),
+                                                    line[:30].ljust(30)), end="", flush=True)
     if retries_total:
         print("\nVýpadky komunikace: %d (podrobnosti v %s)" % (retries_total, LOG_FILE), end="")
     ser.close()
+    total = time.time() - t0
+    L("--", "tisk dokoncen za %s, %d radku" % (hms(total), len(lines)))
     if log:
         log.close()
-    print("\nHotovo za %.0f s." % (time.time() - t0))
+    print("\nTisk dokončen za %s (%d řádků, konec v %s)." % (hms(total), len(lines), time.strftime("%H:%M")))
 
 
 def main():

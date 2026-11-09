@@ -152,6 +152,7 @@ Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_XY4131_navod_v0.5.1.pdf).
 
 ## Historie verzí
 
+- **0.5.2** (jen programy pro PC) – během tisku uplynulý čas a odhad zbývajícího času, po tisku celkový tiskový čas (také v `plot_log.txt`). Firmware zůstává 0.5.1.
 - **0.5.1** – spolehlivější USB: firmware čísluje přijaté řádky (`> #N …`, ve stavu `USB radku N`), `plot.py` podle toho pozná, jestli se ztratil příkaz (pošle znovu), nebo jen odpověď (nepošle – jinak by vznikla čára navíc); celá komunikace se zapisuje do `plot_log.txt`; firmware vypíše obsah zahozeného neúplného příkazu. Nový `sierpinski.py`.
 - **0.5.0** – **text přímo z Atari**: firmware má v sobě blokové i psací písmo a nové příkazy `SI` (velikost), `FN` (písmo), `DI` (směr) a `LB` (text). Čeština zápisem `c^`/`a'`/`u*`, v UTF-8 nebo v kódování Kameníci. Generátor dat písem `tools/gen_font.py`. Firmware 27 kB (Nano Every 48 kB, Leonardo 28 kB – vejde se těsně).
 

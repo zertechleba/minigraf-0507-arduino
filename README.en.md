@@ -153,6 +153,7 @@ Note: the firmware and the PC programs print their status messages in Czech.
 
 ## Version history
 
+- **0.5.2** (PC programs only) – elapsed and estimated remaining time during plotting, total plotting time at the end (also in `plot_log.txt`). Firmware stays 0.5.1.
 - **0.5.1** – more reliable USB: the firmware numbers received lines (`> #N …`, `USB radku N` in the status), `plot.py` uses it to tell whether the command was lost (resend) or only the reply (no resend – it would draw an extra line); all communication is logged to `plot_log.txt`; the firmware prints the content of a discarded incomplete command. New `sierpinski.py`.
 - **0.5.0** – **text directly from the Atari**: the firmware contains the block and script fonts and new commands `SI` (size), `FN` (font), `DI` (direction) and `LB` (label). Czech via `c^`/`a'`/`u*`, UTF-8 or Kamenický encoding. Font data generator `tools/gen_font.py`. Firmware 27 kB (Nano Every 48 kB, Leonardo 28 kB – just fits).
 
