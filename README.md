@@ -7,7 +7,7 @@ z počítače **Atari XE/XL** (přes SIO) i z **PC** (přes USB).
 
 ![Ukázka – nápis s rámečkem a hvězdou](docs/img/ukazka_napis.jpg)
 
-*Autor: Zdeněk Kotrba · © 2026 · verze 0.5.11 (firmware 0.5.2)*
+*Autor: Zdeněk Kotrba · © 2026 · verze 0.5.12 (firmware 0.5.2)*
 
 ---
 
@@ -42,9 +42,10 @@ Atari XE ──SIO──[3× optočlen]── Arduino ──7 signálů── Mi
 | `pc/fraktaly.py` | deset fraktálů (Koch, Hilbert, drak, Gosper, rostlina …), většina jedním tahem (`py fraktaly.py --list`) |
 | `pc/kondiciogram.py` | kondiciogram – biorytmy na zvolený měsíc (`py kondiciogram.py 12.5.1965 11/2026 --send`) |
 | `pc/mzxr_tap.py` | tisk obrázků pro ZX Spectrum + ovladač MZXR přímo ze souboru `.tap` (např. tramvaj T3 od Cygnuse z [cygnus.speccy.cz](https://cygnus.speccy.cz/popis_printer-aritma0507.php)) |
+| `pc/hpgl2atari.py` | výkres HPGL → programy v Atari BASICu (`.LST`, `LPRINT`) a disketa `.atr` (DOS 2.0/2.5 SD) |
 | `pc/hershey_script.py` | data psacího písma (`--font psane`), musí být ve stejné složce jako `text_plot.py` |
-| `docs/Minigraf_0507_XY4131_navod_v0.5.11.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
-| `docs/Minigraf_0507_XY4131_manual_v0.5.11_EN.pdf` | kompletní návod anglicky |
+| `docs/Minigraf_0507_XY4131_navod_v0.5.12.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
+| `docs/Minigraf_0507_XY4131_manual_v0.5.12_EN.pdf` | kompletní návod anglicky |
 | `docs/img/` | schémata zapojení (CZ i EN) a fotky výsledků |
 
 ## Hardware
@@ -152,10 +153,11 @@ Jednotka = 1 krok plotteru: Minigraf 0,125 mm, XY 4131 0,1 mm. Výchozí hodnoty
 *Kaňka v posledním řádku u „JKLM“ vznikla tím, že se na USB ztratil jeden příkaz a verze 0.3.4 čekala 20 s
 s perem dole, než ho poslala znovu. Od verze 0.3.5 firmware pero po 1 s sám zvedne a `plot.py` se zeptá už po 3 s.*
 
-Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_XY4131_navod_v0.5.11.pdf).
+Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_XY4131_navod_v0.5.12.pdf).
 
 ## Historie verzí
 
+- **0.5.12** (programy pro PC a návody) – nový **`hpgl2atari.py`**: libovolný výkres převede na programy v Atari BASICu (`ENTER "D:…LST"`, `RUN`) a uloží je i na disketu `.atr`; `mzxr_tap.py --atari` takhle připraví tramvaj pro Atari. Volba `--dos` přidá soubory na kopii vlastní diskety s DOSem.
 - **0.5.11** (programy pro PC a návody) – nový **`mzxr_tap.py`**: přečte kazetový soubor `.tap` s programy v BASICu pro ZX Spectrum a ovladač MZXR (`PRINT #7,ma,x,y;pd;…;pu`) a nakreslí je na Minigrafu nebo XY 4131 – např. tramvaj Tatra T3 „15 Kobylisy“ od Cygnuse (soubor `data_basic_tramvaj_ckd_t3.tap` si stáhni z [jeho stránky](https://cygnus.speccy.cz/popis_printer-aritma0507.php); v repozitáři kvůli autorským právům není).
 - **0.5.10** (programy pro PC a návody) – po tisku se vrátí i **papír**: hlava a papír nejdřív couvnou do polohy prvního HM, pak `HM;` – vše je přesně jako před tiskem.
 - **0.5.9** (programy pro PC a návody) – po dokončení tisku se hlava sama vrátí na doraz a start (`PU;HM;`), u všech programů (plot.py, text_plot.py, kondiciogram.py, fraktaly.py, sierpinski.py); s `--nohome` jen zvedne pero.

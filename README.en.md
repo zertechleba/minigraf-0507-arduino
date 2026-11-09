@@ -7,7 +7,7 @@ plot from an **Atari XE/XL** computer (via SIO) and from a **PC** (via USB).
 
 ![Example – lettering with frame and star](docs/img/ukazka_napis.jpg)
 
-*Author: Zdeněk Kotrba · © 2026 · version 0.5.11 (firmware 0.5.2)*
+*Author: Zdeněk Kotrba · © 2026 · version 0.5.12 (firmware 0.5.2)*
 
 ---
 
@@ -42,9 +42,10 @@ Atari XE ──SIO──[3× optocoupler]── Arduino ──7 signals── Mi
 | `pc/fraktaly.py` | ten fractals (Koch, Hilbert, dragon, Gosper, plant …), most in one stroke (`py fraktaly.py --list`) |
 | `pc/kondiciogram.py` | biorhythm chart (kondiciogram) for a chosen month (`py kondiciogram.py 12.5.1965 11/2026 --send`) |
 | `pc/mzxr_tap.py` | plots ZX Spectrum + MZXR driver pictures directly from a `.tap` file (e.g. Cygnus's T3 tram from [cygnus.speccy.cz](https://cygnus.speccy.cz/popis_printer-aritma0507.php)) |
+| `pc/hpgl2atari.py` | HPGL drawing → Atari BASIC programs (`.LST`, `LPRINT`) and an `.atr` disk (DOS 2.0/2.5 SD) |
 | `pc/hershey_script.py` | script font data (`--font psane`), must be in the same folder as `text_plot.py` |
-| `docs/Minigraf_0507_XY4131_manual_v0.5.11_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
-| `docs/Minigraf_0507_XY4131_navod_v0.5.11.pdf` | full manual in Czech |
+| `docs/Minigraf_0507_XY4131_manual_v0.5.12_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
+| `docs/Minigraf_0507_XY4131_navod_v0.5.12.pdf` | full manual in Czech |
 | `docs/img/` | schematics (EN and CZ) and photos of results |
 
 ## Hardware
@@ -152,11 +153,12 @@ Unit = 1 plotter step: Minigraf 0.125 mm, XY 4131 0.1 mm. Each plotter has its o
 *The ink blot in the last line near "JKLM" appeared because one command was lost on USB and version 0.3.4 waited
 20 s with the pen down before resending it. From version 0.3.5 the firmware lifts the pen after 1 s and `plot.py` queries after 3 s.*
 
-See the [PDF manual](docs/Minigraf_0507_XY4131_manual_v0.5.11_EN.pdf) for details.
+See the [PDF manual](docs/Minigraf_0507_XY4131_manual_v0.5.12_EN.pdf) for details.
 Note: the firmware and the PC programs print their status messages in Czech.
 
 ## Version history
 
+- **0.5.12** (PC programs and manuals) – new **`hpgl2atari.py`**: converts any drawing into Atari BASIC programs (`ENTER "D:…LST"`, `RUN`) and also saves them on an `.atr` disk; `mzxr_tap.py --atari` prepares the tram for the Atari this way. `--dos` adds the files to a copy of your own DOS disk.
 - **0.5.11** (PC programs and manuals) – new **`mzxr_tap.py`**: reads a `.tap` tape file with ZX Spectrum BASIC programs for the MZXR driver (`PRINT #7,ma,x,y;pd;…;pu`) and plots them on the Minigraf or XY 4131 – e.g. Cygnus's Tatra T3 tram "15 Kobylisy" (download `data_basic_tramvaj_ckd_t3.tap` from [his page](https://cygnus.speccy.cz/popis_printer-aritma0507.php); not included in the repository for copyright reasons).
 - **0.5.10** (PC programs and manuals) – after printing the **paper** returns too: head and paper first move back to the first HM position, then `HM;` – everything is exactly as before printing.
 - **0.5.9** (PC programs and manuals) – after printing the head returns to the stop and start position (`PU;HM;`) in all programs (plot.py, text_plot.py, kondiciogram.py, fraktaly.py, sierpinski.py); with `--nohome` it only lifts the pen.

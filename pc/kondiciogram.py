@@ -25,7 +25,7 @@ Biorytmy jsou zábava z 80. let, ne věda – vědecky se nepotvrdily.
 """
 import argparse, calendar, datetime as dt, math, os, sys
 
-VERSION = "0.5.11"
+VERSION = "0.5.12"
 AREA = {"0507": (1520, 2140, 8), "4131": (1600, 2400, 10)}   # kroky od startu po HM, kroků/mm
 CYCLES = [("F", "fyzický", 23, "plná"), ("P", "psychický", 28, "čárkovaná"), ("I", "intelektuální", 33, "tečkovaná")]
 # výchozí datum narození – když se v příkazu žádné nezadá

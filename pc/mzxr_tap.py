@@ -13,13 +13,14 @@ Takhle jsou uložené např. obrázky ze stránky cygnus.speccy.cz (tramvaj Tatr
     py mzxr_tap.py tramvaj.tap --casti 1,3 --send                jen 1. a 3. program
     py mzxr_tap.py tramvaj.tap --meritko 1 --send                původní velikost v mm (jako na Spectru)
     py mzxr_tap.py tramvaj.tap --plotter 4131 --send
+    py mzxr_tap.py tramvaj.tap --atari                         programy pro Atari BASIC + disketa ATR
 
 Výchozí je obrázek co největší na celou kreslicí plochu (zachová poměr stran, vycentruje).
 Obrázek se nezrcadlí ani neotáčí: osa x MZXR = napříč papírem, osa y = podél papíru.
 """
 import argparse, os, re, sys
 
-VERSION = "0.5.11"
+VERSION = "0.5.12"
 AREA = {"0507": (1520, 2140, 8), "4131": (1600, 2400, 10)}   # kroky od startu po HM, kroků/mm
 
 TOK = ["RND", "INKEY$", "PI", "FN ", "POINT ", "SCREEN$ ", "ATTR ", "AT ", "TAB ", "VAL$ ", "CODE ", "VAL ",
@@ -99,6 +100,10 @@ def strokes_of(lines):
     return [s for s in strokes if len(s) > 1], unknown
 
 
+def nm_title(base):
+    return re.sub(r"[^A-Za-z0-9 ]", " ", base).upper().strip()[:20]
+
+
 def main():
     ap = argparse.ArgumentParser(description="Obrázky pro ZX Spectrum + MZXR na Minigraf / XY 4131 (mzxr_tap.py %s)" % VERSION)
     ap.add_argument("tap", help="soubor .tap s programy v BASICu pro MZXR")
@@ -106,6 +111,9 @@ def main():
     ap.add_argument("--meritko", default="fit", help="fit = co největší (výchozí), číslo = měřítko (1 = původní mm)")
     ap.add_argument("--plotter", choices=("0507", "4131"), default="0507")
     ap.add_argument("--pera", action="store_true", help="každý program jiným perem – před každým se počká na výměnu")
+    ap.add_argument("--atari", action="store_true", help="vytvořit programy v Atari BASICu (.LST) a disketu .atr")
+    ap.add_argument("--jmeno", default=None, help="jméno programů pro Atari (max 7 znaků), výchozí podle kazety")
+    ap.add_argument("--dos", default=None, help="s --atari: přidat programy na kopii této diskety .atr s DOSem")
     ap.add_argument("--send", action="store_true")
     ap.add_argument("--port", default=None)
     ap.add_argument("--speed", type=int, default=None)
@@ -156,6 +164,14 @@ def main():
     with open(out, "w") as f:
         f.write(hpgl([s for _, st in steps for s in st], True))
     print("Měřítko %.3g (%.0f x %.0f mm na papíře) -> %s" % (k, (x1 - x0) * k, (y1 - y0) * k, out))
+    if a.atari:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import hpgl2atari
+        aparts = [[cmd for st in s_ for cmd in (("PU", [st[0]]), ("PD", st[1:]))] for _, s_ in steps]
+        base = a.jmeno or re.sub(r"\d+$", "", progs[0][0]) or "OBRAZEK"    # jméno 1. programu na kazetě (tram1 -> TRAM)
+        paths, nm = hpgl2atari.write(aparts, base, a.plotter, nm_title(base), base_atr=a.dos)
+        print("Atari:", ", ".join(paths))
+        print("  na Atari: ENTER \"D:%s1.LST\"  RUN, pak NEW, ENTER \"D:%s2.LST\"  RUN ..." % (nm, nm))
     try:
         import matplotlib; matplotlib.use("Agg")
         import matplotlib.pyplot as plt

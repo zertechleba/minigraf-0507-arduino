@@ -50,7 +50,7 @@ import argparse
 import math
 import unicodedata
 
-VERSION = "0.5.11"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
+VERSION = "0.5.12"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
 
 # kreslicí plocha v krocích od startovní pozice a kroků na mm podle plotteru
 PLOTTERS = {
