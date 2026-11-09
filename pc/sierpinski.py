@@ -15,7 +15,7 @@ kreslicí plochu (stejnou jako u text_plot.py) a vycentruje.
 """
 import argparse, math, os, sys
 
-VERSION = "0.5.10"
+VERSION = "0.5.11"
 AREA = {"0507": (1520, 2140, 8), "4131": (1600, 2400, 10)}   # kroky od startu po HM, kroků/mm
 
 
