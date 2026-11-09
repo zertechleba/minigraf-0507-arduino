@@ -7,7 +7,7 @@ plot from an **Atari XE/XL** computer (via SIO) and from a **PC** (via USB).
 
 ![Example – lettering with frame and star](docs/img/ukazka_napis.jpg)
 
-*Author: Zdeněk Kotrba · © 2026 · version 0.4.5 (firmware 0.4.2)*
+*Author: Zdeněk Kotrba · © 2026 · version 0.5.0 (firmware 0.5.0)*
 
 ---
 
@@ -39,8 +39,8 @@ Atari XE ──SIO──[3× optocoupler]── Arduino ──7 signals── Mi
 | `pc/plot.py` | sending HPGL files from a PC |
 | `pc/text_plot.py` | lettering, text in lines and test page, block and script font |
 | `pc/hershey_script.py` | script font data (`--font psane`), must be in the same folder as `text_plot.py` |
-| `docs/Minigraf_0507_XY4131_manual_v0.4.5_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
-| `docs/Minigraf_0507_XY4131_navod_v0.4.5.pdf` | full manual in Czech |
+| `docs/Minigraf_0507_XY4131_manual_v0.5.0_EN.pdf` | full manual in English (wiring, commands, examples, troubleshooting) |
+| `docs/Minigraf_0507_XY4131_navod_v0.5.0.pdf` | full manual in Czech |
 | `docs/img/` | schematics (EN and CZ) and photos of results |
 
 ## Hardware
@@ -133,6 +133,10 @@ Load A4 paper **with its top edge at the cut-outs under the feed pinch wheels**.
 | `AC s,r;` | acceleration: start delay s µs, shortened by r µs per step (`AC;` = 6000 / 250) |
 | `DG0;` / `DG1;` | diagonal lines at full speed / slowed ×1.4 (`DG;` = 0) |
 | `PL0507;` / `PL4131;` | plotter selection, stored in EEPROM (`PL;` = print) |
+| `SI n;` | text height in mm (capitals), default 6 |
+| `FN0;` / `FN1;` | block / script font |
+| `DI0;` / `DI1;` | text along X / rotated 90° |
+| `LBtext` | writes text from the pen position (to the end of the line or `CHR$(3)`); Czech: `c^` = č, `a'` = á, `u*` = ů, UTF-8 or Kamenický |
 | `?` | USB only: firmware version and status |
 
 Unit = 1 plotter step: Minigraf 0.125 mm, XY 4131 0.1 mm. Each plotter has its own `VS`, `PT`, `AC` defaults and `LM` limits. Minigraf: drawing area from the start position 1520 × 2140 steps (190 × 267.5 mm) = A4 with 10 mm side margins and 15 mm top and bottom.
@@ -143,10 +147,12 @@ Unit = 1 plotter step: Minigraf 0.125 mm, XY 4131 0.1 mm. Each plotter has its o
 *The ink blot in the last line near "JKLM" appeared because one command was lost on USB and version 0.3.4 waited
 20 s with the pen down before resending it. From version 0.3.5 the firmware lifts the pen after 1 s and `plot.py` queries after 3 s.*
 
-See the [PDF manual](docs/Minigraf_0507_XY4131_manual_v0.4.5_EN.pdf) for details.
+See the [PDF manual](docs/Minigraf_0507_XY4131_manual_v0.5.0_EN.pdf) for details.
 Note: the firmware and the PC programs print their status messages in Czech.
 
 ## Version history
+
+- **0.5.0** – **text directly from the Atari**: the firmware contains the block and script fonts and new commands `SI` (size), `FN` (font), `DI` (direction) and `LB` (label). Czech via `c^`/`a'`/`u*`, UTF-8 or Kamenický encoding. Font data generator `tools/gen_font.py`. Firmware 27 kB (Nano Every 48 kB, Leonardo 28 kB – just fits).
 
 - **0.4.5** (manuals only) – photo of the script font plotted on the Minigraf A 0507.
 - **0.4.4** (PC programs only) – switching the plotter from the command line: `py plot.py --select 0507` / `--select 4131`; `--plotter 0507/4131` in `plot.py` and `text_plot.py` switches the Arduino directly. The manual shows plotter selection from Atari BASIC. Firmware stays 0.4.2.

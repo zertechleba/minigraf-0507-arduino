@@ -7,7 +7,7 @@ z počítače **Atari XE/XL** (přes SIO) i z **PC** (přes USB).
 
 ![Ukázka – nápis s rámečkem a hvězdou](docs/img/ukazka_napis.jpg)
 
-*Autor: Zdeněk Kotrba · © 2026 · verze 0.4.5 (firmware 0.4.2)*
+*Autor: Zdeněk Kotrba · © 2026 · verze 0.5.0 (firmware 0.5.0)*
 
 ---
 
@@ -39,8 +39,8 @@ Atari XE ──SIO──[3× optočlen]── Arduino ──7 signálů── Mi
 | `pc/plot.py` | posílání HPGL souborů z PC |
 | `pc/text_plot.py` | nápisy, text v řádcích a zkušební stránka, blokové i psací písmo |
 | `pc/hershey_script.py` | data psacího písma (`--font psane`), musí být ve stejné složce jako `text_plot.py` |
-| `docs/Minigraf_0507_XY4131_navod_v0.4.5.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
-| `docs/Minigraf_0507_XY4131_manual_v0.4.5_EN.pdf` | kompletní návod anglicky |
+| `docs/Minigraf_0507_XY4131_navod_v0.5.0.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
+| `docs/Minigraf_0507_XY4131_manual_v0.5.0_EN.pdf` | kompletní návod anglicky |
 | `docs/img/` | schémata zapojení (CZ i EN) a fotky výsledků |
 
 ## Hardware
@@ -133,6 +133,10 @@ Papír A4 zakládej **horní hranou k výřezům pod přítlačnými kolečky po
 | `AC s,r;` | zrychlení: pauza při rozjezdu s µs, zkrácení r µs za krok (`AC;` = 6000 / 250) |
 | `DG0;` / `DG1;` | šikmé čáry plnou rychlostí / zpomalené ×1,4 (`DG;` = 0) |
 | `PL0507;` / `PL4131;` | výběr plotteru, uloží se do EEPROM (`PL;` = vypsat) |
+| `SI n;` | výška písma v mm (velká písmena), výchozí 6 |
+| `FN0;` / `FN1;` | písmo blokové / psané |
+| `DI0;` / `DI1;` | text podél osy X / otočený o 90° |
+| `LBtext` | napíše text od polohy pera (do konce řádku nebo `CHR$(3)`); čeština: `c^` = č, `a'` = á, `u*` = ů, UTF-8 nebo Kameníci |
 | `?` | jen z USB: verze firmwaru a stav |
 
 Jednotka = 1 krok plotteru: Minigraf 0,125 mm, XY 4131 0,1 mm. Výchozí hodnoty `VS`, `PT`, `AC` a meze `LM` má každý plotter své. Minigraf: kreslicí plocha od startovní pozice 1520 × 2140 kroků (190 × 267,5 mm) = A4 s okraji 10 mm po stranách a 15 mm nahoře a dole.
@@ -143,9 +147,16 @@ Jednotka = 1 krok plotteru: Minigraf 0,125 mm, XY 4131 0,1 mm. Výchozí hodnoty
 *Kaňka v posledním řádku u „JKLM“ vznikla tím, že se na USB ztratil jeden příkaz a verze 0.3.4 čekala 20 s
 s perem dole, než ho poslala znovu. Od verze 0.3.5 firmware pero po 1 s sám zvedne a `plot.py` se zeptá už po 3 s.*
 
-Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_XY4131_navod_v0.4.5.pdf).
+Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_XY4131_navod_v0.5.0.pdf).
 
 ## Historie verzí
+
+- **0.5.0** – **text přímo z Atari**: firmware má v sobě blokové i psací písmo a nové příkazy `SI` (velikost), `FN` (písmo), `DI` (směr) a `LB` (text). Čeština zápisem `c^`/`a'`/`u*`, v UTF-8 nebo v kódování Kameníci. Generátor dat písem `tools/gen_font.py`. Firmware 27 kB (Nano Every 48 kB, Leonardo 28 kB – vejde se těsně).
+
+```
+10 LPRINT "HM;IN;SI8;FN1;"
+20 LPRINT "PU100,1900;LBAhoj, tohle pi's^e Atari."
+```
 
 - **0.4.5** (jen návody) – fotka psacího písma nakresleného na Minigrafu A 0507.
 - **0.4.4** (jen programy pro PC) – přepnutí plotteru z příkazového řádku: `py plot.py --select 0507` / `--select 4131`; `--plotter 0507/4131` v `plot.py` i `text_plot.py` plotter v Arduinu rovnou přepne. V návodu ukázka výběru plotteru z Atari BASICu. Firmware zůstává 0.4.2.
