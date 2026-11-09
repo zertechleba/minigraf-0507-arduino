@@ -1,5 +1,5 @@
 /*
- * Atari XE (SIO) -> Aritma Minigraf A 0507 / Aritma XY 4131      firmware verze 0.5.0
+ * Atari XE (SIO) -> Aritma Minigraf A 0507 / Aritma XY 4131      firmware verze 0.5.1
  * -----------------------------------------------------------
  * Arduino se na SIO sběrnici tváří jako tiskárna P1: (ID $40).
  * Z Atari se kreslí obyčejným LPRINT příkazy ve zjednodušeném HPGL:
@@ -61,7 +61,7 @@
 #include <math.h>
 #include <EEPROM.h>
 
-#define FW_VERSION "0.5.0"
+#define FW_VERSION "0.5.1"
 
 // ================= Nastavení =================
 const uint8_t  PIN_CMD        = 2;      // SIO Command přes optočlen (LOW = aktivní)
@@ -782,6 +782,7 @@ static char    usbBuf[128];
 static uint8_t usbLen = 0;
 static unsigned long lastBeat = 0, lastBlink = 0, lastUsbChar = 0;
 static unsigned long sioCount = 0;
+static unsigned long usbLines = 0;        // počet přijatých příkazových řádků z USB (kontrola výpadků v plot.py)
 
 static void printStatus() {
   Serial.print(F("[bezi] FW " FW_VERSION " | plotter ")); Serial.print(plotterName());
@@ -792,7 +793,8 @@ static void printStatus() {
   Serial.print(F(", meze ")); Serial.print(xMax); Serial.print(','); Serial.print(yMax); Serial.print(')');
   Serial.print(F(" | pero ")); Serial.print(penIsDown ? F("dole") : F("nahore"));
   Serial.print(F(" | Command=")); Serial.print(digitalRead(PIN_CMD) ? F("H (klid)") : F("L (trvale = Atari odpojeno?)"));
-  Serial.print(F(" | SIO zprav pro P1: ")); Serial.println(sioCount);
+  Serial.print(F(" | SIO zprav pro P1: ")); Serial.print(sioCount);
+  Serial.print(F(" | USB radku ")); Serial.println(usbLines);
   Serial.print(F("        rychlost krok ")); Serial.print(stepUs);
   Serial.print(F(" us | AC ")); Serial.print(startUs); Serial.print(','); Serial.print(rampUs);
   Serial.print(F(" | DG")); Serial.print(diagSlow ? 1 : 0);
@@ -818,8 +820,9 @@ static void idleTasks() {
     Serial.println(F("pero zvednuto (zadny prikaz)"));
   }
   if (usbLen && now - lastUsbChar > 1000) { // neúplný příkaz (ztracený konec řádku) -> zahodit
+    usbBuf[usbLen] = 0;
     usbLen = 0;
-    Serial.println(F("zahozen neuplny prikaz"));
+    Serial.print(F("zahozen neuplny prikaz: ")); Serial.println(usbBuf);
   }
   while (Serial.available()) {             // příkazy přímo z monitoru
     char c = Serial.read();
@@ -829,7 +832,8 @@ static void idleTasks() {
       usbBuf[usbLen] = 0;
       if (usbBuf[0] == '?') printStatus();
       else {
-        Serial.print(F("> ")); Serial.println(usbBuf);
+        usbLines++;
+        Serial.print(F("> #")); Serial.print(usbLines); Serial.print(' '); Serial.println(usbBuf);
         digitalWrite(LED_BUILTIN, HIGH);
         parseLine(usbBuf);
         lastCmdDone = millis();

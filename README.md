@@ -7,7 +7,7 @@ z počítače **Atari XE/XL** (přes SIO) i z **PC** (přes USB).
 
 ![Ukázka – nápis s rámečkem a hvězdou](docs/img/ukazka_napis.jpg)
 
-*Autor: Zdeněk Kotrba · © 2026 · verze 0.5.0 (firmware 0.5.0)*
+*Autor: Zdeněk Kotrba · © 2026 · verze 0.5.1 (firmware 0.5.1)*
 
 ---
 
@@ -38,9 +38,10 @@ Atari XE ──SIO──[3× optočlen]── Arduino ──7 signálů── Mi
 | `firmware/xy4131_test/xy4131_test.ino` | testovací program pro oživení XY 4131 (ovládání jednotlivých signálů) |
 | `pc/plot.py` | posílání HPGL souborů z PC |
 | `pc/text_plot.py` | nápisy, text v řádcích a zkušební stránka, blokové i psací písmo |
+| `pc/sierpinski.py` | Sierpińského trojúhelník jedním tahem (`py sierpinski.py --send`) |
 | `pc/hershey_script.py` | data psacího písma (`--font psane`), musí být ve stejné složce jako `text_plot.py` |
-| `docs/Minigraf_0507_XY4131_navod_v0.5.0.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
-| `docs/Minigraf_0507_XY4131_manual_v0.5.0_EN.pdf` | kompletní návod anglicky |
+| `docs/Minigraf_0507_XY4131_navod_v0.5.1.pdf` | kompletní návod česky (zapojení, příkazy, ukázky, řešení problémů) |
+| `docs/Minigraf_0507_XY4131_manual_v0.5.1_EN.pdf` | kompletní návod anglicky |
 | `docs/img/` | schémata zapojení (CZ i EN) a fotky výsledků |
 
 ## Hardware
@@ -147,10 +148,11 @@ Jednotka = 1 krok plotteru: Minigraf 0,125 mm, XY 4131 0,1 mm. Výchozí hodnoty
 *Kaňka v posledním řádku u „JKLM“ vznikla tím, že se na USB ztratil jeden příkaz a verze 0.3.4 čekala 20 s
 s perem dole, než ho poslala znovu. Od verze 0.3.5 firmware pero po 1 s sám zvedne a `plot.py` se zeptá už po 3 s.*
 
-Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_XY4131_navod_v0.5.0.pdf).
+Podrobnosti najdeš v [PDF návodu](docs/Minigraf_0507_XY4131_navod_v0.5.1.pdf).
 
 ## Historie verzí
 
+- **0.5.1** – spolehlivější USB: firmware čísluje přijaté řádky (`> #N …`, ve stavu `USB radku N`), `plot.py` podle toho pozná, jestli se ztratil příkaz (pošle znovu), nebo jen odpověď (nepošle – jinak by vznikla čára navíc); celá komunikace se zapisuje do `plot_log.txt`; firmware vypíše obsah zahozeného neúplného příkazu. Nový `sierpinski.py`.
 - **0.5.0** – **text přímo z Atari**: firmware má v sobě blokové i psací písmo a nové příkazy `SI` (velikost), `FN` (písmo), `DI` (směr) a `LB` (text). Čeština zápisem `c^`/`a'`/`u*`, v UTF-8 nebo v kódování Kameníci. Generátor dat písem `tools/gen_font.py`. Firmware 27 kB (Nano Every 48 kB, Leonardo 28 kB – vejde se těsně).
 
 ```

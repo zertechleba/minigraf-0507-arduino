@@ -34,7 +34,7 @@ import re
 import sys
 import time
 
-VERSION = "0.4.4"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
+VERSION = "0.5.1"        # verze programu (potřebuje firmware 0.3 nebo novější, pro XY 4131 firmware 0.4.0)
 
 DEFAULT_PORT = "COM4"     # port Arduina s plotterem
 
@@ -144,12 +144,42 @@ def select_plotter(ser, pl):
     return found
 
 
+LOG_FILE = "plot_log.txt"   # záznam komunikace (přepíše se při každém kreslení)
+
+
+def usb_count(ser):
+    """Počet příkazových řádků, které Arduino z USB přijalo (firmware 0.5.1+), jinak None."""
+    ser.reset_input_buffer()
+    ser.write(b"?\n")
+    deadline = time.time() + 2
+    while time.time() < deadline:
+        m = re.search(r"USB radku (\d+)", ser.readline().decode("ascii", errors="ignore"))
+        if m:
+            ser.reset_input_buffer()
+            return int(m.group(1))
+    return None
+
+
 def send_lines(port, lines, ver=None):
-    """Pošle řádky na Arduino, po každém čeká na 'hotovo'. port = název portu nebo otevřený port."""
+    """Pošle řádky na Arduino, po každém čeká na 'hotovo'. port = název portu nebo otevřený port.
+    Vše, co jde tam i zpět, se zapisuje do plot_log.txt."""
     if isinstance(port, str):
         ser, ver, _ = open_plotter(port)
     else:
         ser = port
+    try:
+        log = open(LOG_FILE, "w", encoding="utf-8")
+    except OSError:
+        log = None
+    t_log = time.time()
+
+    def L(kind, text):
+        if log:
+            log.write("%9.3f %s %s\n" % (time.time() - t_log, kind, text))
+            log.flush()
+
+    done_n = usb_count(ser)                # firmware 0.5.1+: počítadlo přijatých řádků
+    L("--", "plot.py %s, firmware %s, USB radku na zacatku: %s" % (VERSION, ver, done_n))
     if "HM;" in lines:
         try:
             vt = tuple(int(x) for x in (ver or "0").split("."))
@@ -164,12 +194,22 @@ def send_lines(port, lines, ver=None):
     for n, line in enumerate(lines, 1):
         retry = 0
         ser.write((line + "\n").encode("ascii"))
+        L("->", line)
+        echo_n = None
         deadline = time.time() + REPLY_TIMEOUT
         probe_at = time.time() + PROBE_AFTER
         probed = False
         saw_hm = False
         while True:
             reply = ser.readline().decode("ascii", errors="ignore").strip()
+            if reply:
+                L("<-", reply)
+            m = re.match(r"> #(\d+) ", reply)
+            if m:
+                echo_n = int(m.group(1))
+            elif reply and not (reply == "hotovo" or reply.startswith(("[bezi]", "HM:", "> ", "rychlost", "pero:", "plotter:"))
+                                or reply.startswith(" ")):
+                print("\n  Arduino: " + reply)       # neočekávaná hláška (např. zahozený neúplný příkaz)
             if reply.startswith("HM:"):
                 saw_hm = True
                 print("\r  " + reply)
@@ -177,17 +217,28 @@ def send_lines(port, lines, ver=None):
                 if line == "HM;" and not saw_hm:
                     ser.close()
                     sys.exit("\nArduino potvrdilo HM, ale hlava na nulu nenajela (firmware HM nezná?). Kreslení zastaveno.")
+                if done_n is not None:
+                    done_n = echo_n if echo_n else done_n + 1
                 break
             if reply.startswith("==="):
                 sys.exit("\nARDUINO SE RESTARTOVALO u řádku %d/%d (%s).\n"
                          "Poloha je ztracená. Nejspíš rušení nebo pokles napájení od motorů." % (n, len(lines), line))
             if probed and reply.startswith("[bezi]"):
                 # Arduino žije, ale na řádek neodpovědělo -> ztratil se příkaz nebo odpověď
+                m = re.search(r"USB radku (\d+)", reply)
+                if m and done_n is not None and int(m.group(1)) > done_n:
+                    # řádek Arduino přijalo a nakreslilo, ztratila se jen odpověď -> neposílat znovu
+                    done_n = int(m.group(1))
+                    retries_total += 1
+                    print("\n  ! odpověď se ztratila, řádek ale Arduino nakreslilo – pokračuji: %s" % line)
+                    L("!!", "ztracena odpoved, radek proveden (USB radku %d)" % done_n)
+                    break
                 retry += 1
                 retries_total += 1
                 if retry > MAX_RETRY:
                     sys.exit("\nŘádek %d/%d se nepodařilo poslat ani na %d. pokus: %s" % (n, len(lines), MAX_RETRY, line))
                 print("\n  ! bez odpovědi, posílám znovu (%d. pokus): %s" % (retry, line))
+                L("!!", "radek neprisel, posilam znovu (%d. pokus)" % retry)
                 ser.reset_input_buffer()
                 ser.write((line + "\n").encode("ascii"))
                 probe_at = time.time() + PROBE_AFTER
@@ -195,6 +246,7 @@ def send_lines(port, lines, ver=None):
                 continue
             if not probed and time.time() > probe_at:
                 ser.write(b"?\n")                # zeptat se; dlouhé kreslení odpoví až po dokončení
+                L("->", "?")
                 probed = True
             if time.time() > deadline:
                 sys.exit("\nArduino neodpovídá ani na dotaz (řádek %d/%d: %s).\n"
@@ -202,8 +254,10 @@ def send_lines(port, lines, ver=None):
         print("\r%d/%d  %3d %%  %s" % (n, len(lines), n * 100 // len(lines), line[:40].ljust(40)),
               end="", flush=True)
     if retries_total:
-        print("\nZnovu posláno řádků: %d (výpadky komunikace)" % retries_total, end="")
+        print("\nVýpadky komunikace: %d (podrobnosti v %s)" % (retries_total, LOG_FILE), end="")
     ser.close()
+    if log:
+        log.close()
     print("\nHotovo za %.0f s." % (time.time() - t0))
 
 
